@@ -1,0 +1,63 @@
+syntax = "proto3";
+package auth;
+
+service Authentication {
+    rpc Authorize(AuthRequest) returns (AuthResult); // Возвращает AccessToken или ошибку
+    rpc GetAuth(GetAuthTokenRequest) returns (AuthResult); // Возвращает AuthToken, который живет не так долго
+    rpc RefreshAccess(RefreshAccessTokenRequest) returns (AuthResult); // Возвращает AccessToken или ошибку
+    rpc DropToken(DropTokenRequest) returns (DropResult); // ask server to Drop token
+}
+
+enum TokenType {
+  Access     = 0;
+  Auth       = 1;
+  Connection = 3;
+}
+
+message Token {// Общий класс для Токена. Токены бывают разные. но по сути это всегда просто сгенеренная строка
+  string value = 1;
+  optional TokenType token_type = 2;
+}
+
+message AuthRequest { // Сообщение для запроса авторизации через логин/пароль и получения access_token
+  string login    = 1; // логин
+  string password = 2; // пароль
+}
+
+message GetAuthTokenRequest { // Сообщение для получения токена аунтефикации
+  optional Token access_token = 1;  // Токен доступа, который сервер дает в ответе на AuthRequest
+                                    // Если None ==> токен ищется в метадате с ключом access_token.
+                                    // Метадата используется для Cookies
+
+}
+
+message RefreshAccessTokenRequest { // Сообщение для обновления access_token
+  optional Token access_token = 1;  // Токен доступа, который сервер дает в ответе на AuthRequest
+                                    // Если None ==> токен ищется в метадате с ключом access_token.
+                                    // Метадата используется для Cookies
+}
+
+message DropTokenRequest {
+  Token auth_token = 1; // or in metadata
+  Token to_drop    = 2;
+}
+
+message DropResult {
+  bool is_done = 1;
+}
+
+enum AuthFailError { // Перечисление ошибок, не связанных с работой сервера, т.е:
+  InvalidData  = 0; // Ошибка с данными, т.е. нет такого соответствия
+  OutOfDate    = 1; // Можно установить, что данные устарели. Исп. для GetAuthTokenRequest
+                    // Или в местах, где к запросу прикрепляется токен аунтефикации
+                    // Будет использоваться и для AuthRequest. Т.к. мы будем генерировать
+                    // Одноразовые пароли для судей
+}
+
+message AuthResult { // Ответ на AuthRequest и GetAuthTokenRequest и тп.
+  oneof result {
+    Token token = 1;
+    AuthFailError error = 3;
+  }
+}
+
