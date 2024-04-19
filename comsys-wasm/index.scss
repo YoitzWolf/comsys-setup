@@ -22,6 +22,29 @@ $global_fill_bg: rgb(118, 171, 174);
   transition: background-color 200ms, color 200ms;
 }
 
+a {
+  cursor: pointer;
+}
+
+
+@mixin noselect {
+  -webkit-touch-callout: none; /* iOS Safari */
+  -webkit-user-select: none; /* Safari */
+  -khtml-user-select: none; /* Konqueror HTML */
+  -moz-user-select: none; /* Old versions of Firefox */
+  -ms-user-select: none; /* Internet Explorer/Edge */
+  user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome, Edge, Opera and Firefox */
+}
+
+%noselect {
+  @include noselect;
+}
+
+.noselec {
+  @extend %noselect;
+}
+
 .col-1 {width: 8.33%;}
 .col-2 {width: 16.66%;}
 .col-3 {width: 25%;}
@@ -31,9 +54,12 @@ $global_fill_bg: rgb(118, 171, 174);
 .col-7 {width: 58.33%;}
 .col-8 {width: 66.66%;}
 .col-9 {width: 75%;}
-.col-10 {width: 83.33%;}
+.col-10 {width: 85%;}
 .col-11 {width: 91.66%;}
 .col-12 {width: 100%;}
+
+.col-2_5 {width: 20%;}
+.col-9_5 {width: 80%;}
 
 .hidden {
   visibility: hidden;
@@ -48,9 +74,18 @@ $global_fill_bg: rgb(118, 171, 174);
   html {
     .header {
       font-size: 50rem;
+      height: 55rem;
+      * {
+        margin-top: auto;
+        margin-right: auto;
+        box-sizing: border-box;
+      }
       h1 {
         font-size: 50rem;
       }
+    }
+    .main {
+      margin-top: 10rem;
     }
     body {
       font-size: 50rem;
@@ -73,9 +108,13 @@ $global_fill_bg: rgb(118, 171, 174);
   .col-11 {width: 100%;}
   .col-12 {width: 100%;}
 
+  .col-2_5 {width: 30%;}
+  .col-9_5 {width: 100%;}
+
   html {
     .header {
       font-size: 4rem;
+      height: 6rem;
 
       & > *:first-child{
         margin-left: 2.5%;
@@ -154,7 +193,7 @@ $global_fill_bg: rgb(118, 171, 174);
   }
 
   .main {
-    margin-top: 6rem !important;
+    margin-top: 8rem;
   }
 
 }
@@ -163,6 +202,8 @@ $global_fill_bg: rgb(118, 171, 174);
 @media only screen and (min-width: 768px) {
   .col-1 {width: 10%;}
   .col-2 {width: 30%;}
+  .col-2_5 {width: 30%;}
+  .col-9_5 {width: 100%;}
   .col-3 {width: 70%;}
   .col-4 {width: 70%;}
   .col-5 {width: 90%;}
@@ -176,6 +217,7 @@ $global_fill_bg: rgb(118, 171, 174);
 
   html {
     .header {
+      height: 8rem;
       font-size: 5rem;
       h1 {
         font-size: 5rem;
@@ -195,10 +237,9 @@ $global_fill_bg: rgb(118, 171, 174);
     body {
       font-size: 2rem;
     }
-  }
-
-  .main {
-    margin-top: 10rem !important;
+    .main {
+      margin-top: 9rem;
+    }
   }
 }
 
@@ -207,6 +248,8 @@ $global_fill_bg: rgb(118, 171, 174);
   .col-1 {width: 10%;}
   .col-2 {width: 20%;}
   .col-3 {width: 30%;}
+  .col-2_5 {width: 25%;}
+  .col-9_5 {width: 90%;}
   .col-4 {width: 40%;}
   .col-5 {width: 50%;}
   .col-6 {width: 60%;}
@@ -219,6 +262,7 @@ $global_fill_bg: rgb(118, 171, 174);
 
   html {
     .header {
+      height: 4rem;
       font-size: 3rem;
       h1 {
         font-size: 3rem;
@@ -234,32 +278,39 @@ $global_fill_bg: rgb(118, 171, 174);
     body {
       font-size: 2rem;
     }
+    .main {
+      margin-top: 5rem;
+    }
   }
-
-  .main {
-    margin-top: 5rem !important;
-  }
-
 }
 
 @media only screen and (min-width: 1200px) {
 
-  .col-1 {width: 8.33%;}
-  .col-2 {width: 16.66%;}
+  .col-1 {width: 10%;}
+  .col-2 {width: 15%;}
+  .col-2_5 {width: 20%;}
+  .col-9_5 {width: 80%;}
   .col-3 {width: 25%;}
   .col-4 {width: 33.33%;}
-  .col-5 {width: 41.66%;}
+  .col-5 {width: 40%;}
   .col-6 {width: 50%;}
   .col-7 {width: 58.33%;}
   .col-8 {width: 66.66%;}
   .col-9 {width: 75%;}
-  .col-10 {width: 83.33%;}
+  .col-10 {width: 85%;}
   .col-11 {width: 91.66%;}
   .col-12 {width: 100%;}
 
   html {
     .header {
+      height: 3rem;
       font-size: 1.5rem;
+      &> *{
+        display: inline-block;
+        margin-top: auto;
+        margin-bottom: auto;
+        margin-right: auto;
+      }
       h1 {
         font-size: 1.5rem;
         box-sizing: content-box;
@@ -275,6 +326,7 @@ $global_fill_bg: rgb(118, 171, 174);
         list-style: none;
         padding: 0;
         top: auto;
+        bottom: auto;
         position: relative;
         * {
           margin: auto;
@@ -309,7 +361,51 @@ $global_fill_bg: rgb(118, 171, 174);
     }
   }
   .main {
-    margin-top: 4.5rem !important;
+    margin-top: 3.75rem !important;
+  }
+
+  .inline-fx-container {
+    display: flex;
+    //flex-flow: column;
+    //display: inline-flex;
+    //flex-wrap: wrap;
+    //list-style: none;
+    *{
+      border-radius: 0.5rem;
+      flex: auto;
+      //align-items: stretch;
+      //display: inline-block;
+    }
+
+    &:first-child {
+      margin-right: 0.5rem;
+    }
+
+    #side-user-menu {
+      //@extend %noselect;
+      max-width: 18%;
+      padding: 0.5rem;
+      padding-left: 1rem;
+      padding-right: 1rem;
+      background-color: var(--light);
+      color: var(--semidark);
+      text-align: right;
+
+      ul {
+        list-style: none;
+        li {
+          //@include noselect;
+          cursor: pointer;
+          color: var(--accent);
+          transition: color 0.3s;
+          text-decoration: underline;
+        }
+        li:hover {
+          color: var(--dark);
+          transition: color 0.3s;
+        }
+      }
+    }
   }
 }
 
@@ -343,7 +439,7 @@ html {
     text-decoration: none;
   }
 
-  padding: 10px 0;
+  //padding: 10px 0;
 
   & > *:first-child{
     margin-left: 2.5%;
@@ -379,11 +475,13 @@ html {
   }
 }
 
-
 .main {
   width: 95%;
   min-height: 100%;
-  margin: 3rem auto 1rem;
+  //margin-top: 3rem;
+  margin-right: auto;
+  margin-left: auto;
+  margin-bottom: 1rem;
 }
 
 .footer {
@@ -405,18 +503,8 @@ html {
   text-align: center;
 }
 
-.noselect {
-  -webkit-touch-callout: none; /* iOS Safari */
-  -webkit-user-select: none; /* Safari */
-  -khtml-user-select: none; /* Konqueror HTML */
-  -moz-user-select: none; /* Old versions of Firefox */
-  -ms-user-select: none; /* Internet Explorer/Edge */
-  user-select: none; /* Non-prefixed version, currently
-                                  supported by Chrome, Edge, Opera and Firefox */
-}
-
 .btn {
-  @extend .noselect;
+  @extend %noselect;
   cursor: pointer;
   background-color: var(--accent);
   color: var(--dark);
@@ -479,8 +567,8 @@ html {
   min-height: 0;
   margin: 0;
 
+  display: flex !important;
   align-content: center;
-  display: flex;
   justify-content: center;
   align-items: center;
 
@@ -489,6 +577,37 @@ html {
 
   background-color: transparentize($global_fill_bg, 0);
   z-index: 10000;
+
+  * {
+    z-index: 20000;
+  }
+
+  & > * {
+    position: relative;
+    margin: 0;
+    color: var(--dark);
+    background-color: var(--light);
+    display: block;
+  }
+
+  input, .btn {
+    display: block;
+    width: calc(100% - 1rem);
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    border: none;
+    margin: auto;
+    margin-top: 1rem;
+    font-size: 70%;
+    text-align: center;
+    font-weight: bold;
+  }
+
+  .btn {
+    display: block;
+    font-size: 100%;
+  }
+
 }
 
 .global_fill_hiding {
@@ -496,35 +615,6 @@ html {
   //height: 0;
   //transition: height 5s;
   animation: .3s ease-in-out both fadeOut;
-}
-
-.global_fill * {
-  z-index: 20000;
-}
-
-.global_fill > * {
-  position: relative;
-  margin: 0;
-  color: var(--dark);
-  background-color: var(--light);
-  display: block;
-}
-
-.global_fill input, .global_fill .btn {
-  display: block;
-  width: calc(100% - 1rem);
-  padding: 0.5rem;
-  border-radius: 0.5rem;
-  border: none;
-  margin: auto;
-  margin-top: 1rem;
-  font-size: 70%;
-  text-align: center;
-  font-weight: bold;
-}
-
-.global_fill .btn {
-  font-size: 100%;
 }
 
 .card {

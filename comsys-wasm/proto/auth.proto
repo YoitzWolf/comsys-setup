@@ -6,6 +6,8 @@ service Authentication {
     rpc GetAuth(GetAuthTokenRequest) returns (AuthResult); // Возвращает AuthToken, который живет не так долго
     rpc RefreshAccess(RefreshAccessTokenRequest) returns (AuthResult); // Возвращает AccessToken или ошибку
     rpc DropToken(DropTokenRequest) returns (DropResult); // ask server to Drop token
+
+    rpc Registration(RegisterRequest) returns (RegisterResult);
 }
 
 enum TokenType {
@@ -61,3 +63,11 @@ message AuthResult { // Ответ на AuthRequest и GetAuthTokenRequest и т
   }
 }
 
+message RegisterRequest{
+  AuthRequest auth_req = 1; // Стандартный запрос для входа, но для регистрации
+  optional string supervisor_code = 2; // Для избегания регистрации кого попало
+}
+
+message RegisterResult {
+  bool registered = 1; // отправлено ли в обработку supervisor
+}

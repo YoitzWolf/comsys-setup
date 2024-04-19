@@ -154,7 +154,7 @@ impl Context {
 
     pub fn get_web_client() -> tonic_web_wasm_client::Client {
         tonic_web_wasm_client::Client::new_with_options(
-            "https://127.0.0.1/api".to_string(),
+            format!("{}/api", web_sys::window().unwrap().location().origin().unwrap().to_string()).to_string(),
             FetchOptions::new().credentials(Credentials::Include)
         )
     }

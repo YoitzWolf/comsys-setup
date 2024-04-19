@@ -7,7 +7,7 @@ mod context;
 mod grpc;
 mod reqs;
 
-use components::basic::*;
+use components::*;
 use crate::context::{Context, GlobalContext, GlobalContextProvider};
 
 #[function_component]
@@ -18,7 +18,9 @@ fn App() -> Html {
         <GlobalContextProvider>
             <BaseTemplate>
                 <BaseHeader/>
-                <div class={"main"}>{"F"}</div>
+                <MainComponent>
+                    <div>{"F"}</div>
+                </MainComponent>
                 <div class={"footer"}><div>{"footer here"}</div></div>
             </BaseTemplate>
         </GlobalContextProvider>

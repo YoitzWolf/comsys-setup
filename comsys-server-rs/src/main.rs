@@ -71,9 +71,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .layer(
             CorsLayer::new()
                 //.allow_origin(AllowOrigin::mirror_request())
-                .allow_origin(AllowOrigin::exact(
+                .allow_origin(
+                    AllowOrigin::predicate(|origin, _| {
+                        origin.as_bytes().starts_with(b"https://")
+                    })
+                    /*AllowOrigin::exact(
                         HeaderValue::from_str(&"https://127.0.0.1").unwrap()
-                    )
+                    )*/
                 )
                 .allow_credentials(true)
                 .max_age(DEFAULT_MAX_AGE)

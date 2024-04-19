@@ -1,4 +1,6 @@
+use std::net::SocketAddr;
 use serde_json::to_string_pretty;
+use serde_json::Value::String;
 use tonic::{transport::Server, Request, Response, Status};
 use tonic::metadata::MetadataValue;
 
@@ -36,15 +38,19 @@ impl Authentication for AuthService {
             ))
         });
         if is_web { // Setup Cookies
+            let mut addr = "".to_string();
+            if let Some(r) = request.metadata().get("Host") {
+                addr = r.to_str().unwrap_or(&"").to_string()
+            }
             resp.metadata_mut().insert(
                 "set-cookie",
                 //format!("access-token={token_value};Domain=127.0.0.1;Secure=true;Path=/api/auth.Authentication/GetAuth;HttpOnly=true;Max-Age=2678400;SameSite=strict").to_string().parse().unwrap() // HttpOnly
                 tower_cookies::Cookie::build(("access-token", token_value))
                     .path("/api/auth.Authentication/GetAuth")
-                    .domain("127.0.0.1")
+                    .domain(addr)
                     .http_only(true)
                     .max_age(Duration::days(31))
-                    .same_site(SameSite::Strict)
+                    .same_site(SameSite::None)
                     .secure(true)
                     .build().to_string().parse().unwrap()
             );
@@ -94,6 +100,8 @@ impl Authentication for AuthService {
 
     async fn drop_token(&self, request: Request<DropTokenRequest>) -> Result<Response<DropResult>, Status> {
         //info!(target: "gRPC: ", "Received new authorize request: {:?}", request);
+        let mut addr = "".to_string();
+
         let (meta, ext, req ) = request.into_parts();
         let is_web = meta.contains_key("x-grpc-web".to_string());
         let allowed = true;
@@ -111,18 +119,20 @@ impl Authentication for AuthService {
                     )
                 }
             )
-                {
-
-                resp.metadata_mut().insert(
+             {
+                 if let Some(r) = meta.get("Host") {
+                     addr = r.to_str().unwrap_or(&"").to_string()
+                 }
+                 resp.metadata_mut().insert(
                 "set-cookie",
                     tower_cookies::Cookie::build(("access-token", "removed") )
                         .path("/api/auth.Authentication/GetAuth")
-                        .domain("127.0.0.1")
+                        .domain(addr)
                         .http_only(true)
                         .max_age(Duration::nanoseconds(0))
-                        .same_site(SameSite::Strict)
+                        .same_site(SameSite::None)
                         .secure(true)
-                        .build().to_string().parse().unwrap()
+                        .build().encoded().to_string().parse().unwrap()
 
                 );
         }
