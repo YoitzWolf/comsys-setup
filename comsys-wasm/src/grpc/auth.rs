@@ -68,6 +68,23 @@ pub mod auth_result {
         Error(i32),
     }
 }
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RegisterRequest {
+    /// Стандартный запрос для входа, но для регистрации
+    #[prost(message, optional, tag = "1")]
+    pub auth_req: ::core::option::Option<AuthRequest>,
+    /// Для избегания регистрации кого попало
+    #[prost(string, optional, tag = "2")]
+    pub supervisor_code: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RegisterResult {
+    /// отправлено ли в обработку supervisor
+    #[prost(bool, tag = "1")]
+    pub registered: bool,
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum TokenType {
@@ -286,6 +303,28 @@ pub mod authentication_client {
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(GrpcMethod::new("auth.Authentication", "DropToken"));
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn registration(
+            &mut self,
+            request: impl tonic::IntoRequest<super::RegisterRequest>,
+        ) -> std::result::Result<tonic::Response<super::RegisterResult>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/auth.Authentication/Registration",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(GrpcMethod::new("auth.Authentication", "Registration"));
             self.inner.unary(req, path, codec).await
         }
     }

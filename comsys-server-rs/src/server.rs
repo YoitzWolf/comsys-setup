@@ -141,5 +141,9 @@ impl Authentication for AuthService {
             resp
         )
     }
+
+    async fn registration(&self, request: Request<RegisterRequest>) -> Result<Response<RegisterResult>, Status> {
+        todo!()
+    }
 }
 
