@@ -1,1 +1,0 @@
-docker run --name tt-instance-001 -p 127.0.0.1:3301:3301 -d -v D:\codes_dc\comsys\comsys-server-rs\tt\instances.enabled:/opt/tarantool -v D:\codes_dc\comsys\tarantool_data:/var/lib/tarantool -e TT_APP_NAME=tt -e TT_INSTANCE_NAME=instance-001 tarantool/tarantool
