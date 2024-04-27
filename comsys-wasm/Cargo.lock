@@ -182,7 +182,6 @@ dependencies = [
 name = "consys-wasm"
 version = "0.1.0"
 dependencies = [
- "gloo 0.8.1",
  "prost",
  "prost-types",
  "reqwest",

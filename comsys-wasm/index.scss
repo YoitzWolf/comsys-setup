@@ -7,6 +7,7 @@
   --light: rgb(238, 238, 238);
 
   --black: rgb(0, 0, 0);
+  --lightgray: rgb(200, 200, 200);
   --white: rgb(255, 255, 255);
 
   --err: rgb(208, 72, 72);
@@ -145,6 +146,7 @@ a {
         background-image: url("util_img/burger-menu.svg");
         background-size:cover;
         margin: auto;
+        margin-left: 1rem;
         cursor: pointer;
         box-sizing: content-box;
         display: inline-block;
@@ -383,10 +385,10 @@ a {
 
     #side-user-menu {
       //@extend %noselect;
-      max-width: 18%;
-      padding: 0.5rem;
-      padding-left: 1rem;
-      padding-right: 1rem;
+      width: 17%;
+      //padding: 0.5rem;
+      //padding-left: 1rem;
+      //padding-right: 1rem;
       background-color: var(--light);
       color: var(--semidark);
       text-align: right;
@@ -622,4 +624,130 @@ html {
   border-radius: 1rem;
   box-sizing: border-box;
   display: block;
+}
+
+.event-card {
+  @extend .card;
+  width: calc(100% - 0.5rem);
+  padding: 0.5rem;
+  border: var(--accent) 0.1rem solid;
+  color: var(--dark);
+  margin-top: 0.2rem;
+  margin-bottom: 0.2rem;
+  .event-header {
+    //display: flex;
+    //flex: min-content;
+    display:flex;
+    flex-direction:row;
+    flex-wrap:wrap;
+    margin-bottom: 0.5rem;
+    border-radius: 0;
+    border-bottom: var(--accent) 0.1rem solid;
+    padding-bottom: 0.5rem;
+    * {
+      display: inline-block;
+      width: fit-content;
+      box-sizing: content-box;
+      flex: none;
+    }
+    h4 {
+
+      color: var(--dark);
+      margin-right: 0.2rem;
+      //text-decoration: underline;
+    }
+    a {
+      display: inline-flex;
+      color: var(--accent);
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+  .event-data {
+    width: 100%;
+    display: block;
+    div {
+      width: 100%;
+      max-width: 100%;
+
+      display: table;
+      //flex: auto;
+      //flex: fit-content;
+      //justify-content: center;
+      //align-items: center;
+
+      * {
+        display: inline-block;
+        min-width: 300px;
+        //width: fit-content;
+        //margin: auto;
+        //flex: fit-content;
+        margin-bottom: 0.25rem;
+      }
+
+      .card {
+        min-width: 30%;
+        width: fit-content;
+        display: inline-block;
+        text-align: left;
+        //margin-right: auto;
+        //margin-left: auto;
+        padding: 0;
+        padding-right: 0.25rem;
+        div {
+          ul {
+            display: block;
+            list-style: none;
+            li {
+              display: block;
+              * {
+                display: inline;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+
+.user-block {
+  display: inline-flex !important;
+  //div {
+    //display: table;
+    * {
+      display: inline-block;
+      box-sizing: content-box;
+      font-size: 90%;
+      margin-top: auto;
+      margin-bottom: auto;
+    }
+
+  //noinspection CssUnknownTarget
+  .avatar {
+      border-radius: 100vh;
+      width: 2rem;
+      height: 2rem;
+      //background-color: var(--lightgray);
+      background-image: url("/def_avatars/avatar_03.png");
+      background-size: cover;
+      background-position: center;
+      margin-left: 0.5rem;
+      margin-right: 0.5rem;
+    }
+  //}
+}
+
+.marked {
+  color: var(--accent);
+}
+
+.marked-ok {
+  color: var(--ok);
+}
+
+.marked-err {
+  color: var(--err);
 }

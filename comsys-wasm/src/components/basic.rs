@@ -1,22 +1,11 @@
 use std::fmt::Debug;
-use tonic::{Request, Status};
-use tonic_web_wasm_client::options::{Credentials, FetchOptions};
 use wasm_bindgen::JsCast;
-use web_sys::{HtmlElement, HtmlFormElement, HtmlInputElement};
-use yew_autoprops::autoprops;
-
 use yew::prelude::*;
-use yew::{function_component, classes, html, Html, Callback};
-use yew::context::_ContextProviderProps::{children};
+use yew::{function_component, classes, html, Html};
 
 
-use crate::grpc::auth::*;
-use authentication_client::*;
-use crate::context::{ContextAction, GlobalContext};
-use crate::grpc::auth::auth_result::Result::Token;
-use crate::reqs::{drop_me_shortcut, get_access_shortcut, get_auth_shortcut};
-
-use super::header::*;
+use crate::context::{GlobalContext};
+use crate::reqs::*;
 
 #[derive(Properties, PartialEq)]
 pub struct BaseTemplateProps{

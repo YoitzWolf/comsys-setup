@@ -16,9 +16,8 @@ yew = { version = "0.21.0", features = ["csr", "default"] } # main
 yew-router = "*"
 yew-autoprops = "0.4.1"
 
-web-sys = { version = "0.3.69", features = ["Event", "EventTarget", "HtmlFormElement"] }
-
-gloo = "*"
+web-sys = { version = "0.3.69", features = ["Event", "EventTarget", "HtmlFormElement", "Screen"] }
+# gloo = "*"
 
 prost = "0.12"
 prost-types = "0.12"

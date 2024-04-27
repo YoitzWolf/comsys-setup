@@ -20,14 +20,14 @@ tower-cookies = "0.10.0"
 
 tonic-web = { version = "0.11"}
 tonic = { version = "0.11" , features = ["tls", "tls-roots-common", "tls-webpki-roots"]} #,"tls-roots","tls-webpki-roots"
-prost = "0.12"
+prost = { version = "0.12", features = ["derive"    ] }
 # tonic-build = "*"
 
 # zeroize = "*"
 # ed25519-dalek={ version="2.0.0", features=["alloc", "std", "rand_core", "batch", "asm", "serde"]}
 # x25519-dalek = {version = "2.0.1", features = ["getrandom", "zeroize"]}
 # aes = "*"
-serde = { version = "*", features = ["derive"] }
+serde = { version = "*", features = ["derive", "alloc", "std", "serde_derive", "rc"] }
 serde_json="*"
 tonic-build = "0.11.0"
 
@@ -36,9 +36,20 @@ tracing = "0.1"
 tracing-subscriber = "0.3"
 tracing-appender = "*"
 
+# Token and Security
+jsonwebtoken = { version = "9.3.0"}
+# zeroize = { version = "1.7.0", features = ["zeroize_derive", "derive", "serde"]}
+rand = { version = "0.8.5", features = ["default"]}
+rand_core = {version = "0.6.4"}
+uuid = { version = "1.8.0", features = ["v4", "v8", "serde", "atomic", "fast-rng"] }
+argon2 = {version = "0.5.3", features = ["zeroize"]}
 
-diesel = { version = "2.1.1", features = ["postgres"] }
+# BD Working
+diesel = { version = "2.1.6"}
+diesel-async = { version = "0.4.1", features = ["postgres", "async-connection-wrapper", "deadpool"] }
 dotenvy = "0.15.7"
+# tarantool-rs = { version = "0.0.10"}
+# tarantool = "0.6.6"
 
 [build-dependencies]
-tonic-build = "*"
+tonic-build = { version = "*" }

@@ -1,19 +1,29 @@
+use std::env;
+use std::sync::Arc;
 use std::time::Duration;
-use tonic::codegen::http::{HeaderName, HeaderValue};
 
+use diesel::prelude::*;
+use diesel_async::{RunQueryDsl, AsyncConnection, AsyncPgConnection};
+use diesel_async::pooled_connection::AsyncDieselConnectionManager;
+use diesel_async::pooled_connection::deadpool::Pool;
+
+use dotenvy::dotenv;
+
+use tokio::sync::Mutex;
+use tonic::codegen::http::{HeaderName, HeaderValue};
 use tonic::transport::{Identity, Server, ServerTlsConfig};
 use tower_http::cors::{AllowOrigin, Any, Cors, CorsLayer};
 use tower_cookies::{Cookie, CookieManager, CookieManagerLayer, Cookies};
-
+use tonic_build::Service;
 
 use crate::gen::auth::authentication_server::AuthenticationServer;
 
-use tonic::transport::server::Routes;
-use tonic_build::Service;
-use tonic_web::GrpcWebService;
-
 mod server;
 mod gen;
+mod auth_backend;
+mod schema;
+mod models;
+mod db_mng;
 
 use server::AuthService;
 
@@ -36,9 +46,6 @@ const DEFAULT_ALLOW_HEADERS: [&str; 7] =
         "access-token"
     ];
 
-
-
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
@@ -48,23 +55,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_max_level(Level::INFO)
         .with_writer(non_blocking)
         .init();
+    
+    let mut tgen = auth_backend::tokens::TokenGenerator::new();
 
+    dotenv().ok();
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    /*let db_con = AsyncPgConnection::establish(&database_url).await
+        .unwrap_or_else(|_| panic!("Error connecting to {}", database_url));*/
+
+    let config = AsyncDieselConnectionManager::<diesel_async::AsyncPgConnection>::new(database_url);
+    let pool = Pool::builder(config).build()?;
 
     let addr = "127.0.0.1:50051".parse().unwrap();
-    let auther = AuthenticationServer::new(AuthService::default()); //tonic_web::enable();
-
-    //let pem = tokio::fs::read("./cert.pem").await.unwrap();
-    //let cert = tonic::transport::Certificate::from_pem(pem);
-    //tonic::transport::ClientTlsConfig::new().ca_certificate(cert);
+    let auther = AuthenticationServer::new(
+        AuthService::new(
+            Arc::new(Mutex::new(tgen)),
+            Arc::new(Mutex::new(pool))
+        )
+    );
 
     println!("AuthServer listening on {}", addr);
-
-    //let data_dir = std::path::PathBuf::from_iter([std::env!("CARGO_MANIFEST_DIR"), "./"]);
-    /*let cert = std::fs::read_to_string("./127.0.0.1.pem")?;
-    let key = std::fs::read_to_string( "./127.0.0.1-key.pem")?;
-
-    let identity = Identity::from_pem(cert, key);*/
-
+    
     Server::builder()
         .accept_http1(true)
         //.tls_config(ServerTlsConfig::new().identity(identity))?
@@ -86,14 +97,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .iter()
                         .cloned()
                         .map(HeaderName::from_static)
-                        .collect::<Vec<HeaderName>>(),
+                        .collect::<Vec<HeaderName>>()
                 )
                 .allow_headers(
                     DEFAULT_ALLOW_HEADERS
                         .iter()
                         .cloned()
                         .map(HeaderName::from_static)
-                        .collect::<Vec<HeaderName>>(),
+                        .collect::<Vec<HeaderName>>()
                 ),
         )
         .layer(tonic_web::GrpcWebLayer::new())

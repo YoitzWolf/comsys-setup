@@ -1,4 +1,6 @@
 */.idea
 */.git
-
-
+*/target
+*/debug.creds
+*/check.txt
+*/log.*
