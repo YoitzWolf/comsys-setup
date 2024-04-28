@@ -23,8 +23,6 @@ pub struct TokenClaim {
     pub(crate) sub: String,
     /// Token value, used as ID of token
     pub(crate) value: String,
-    /// Name of User's organisation
-    //pub(crate) organisation_id: String,
     /// Users name
     pub(crate) user_id: String,
     ///// Creator of token
@@ -129,6 +127,15 @@ impl TokenGenerator {
         }
     }
 
+    pub fn with_secet(s: &[u8]) -> Self {
+        Self {
+            encoding: EncodingKey::from_secret(&s),
+            decoding: DecodingKey::from_secret(&s),
+            access_token_ttl: 2_678_400,
+            auth_token_ttl: 14_400,
+        }
+    }
+
     pub fn get_acc_ttl(&self) -> usize {
         self.access_token_ttl
     }
@@ -207,4 +214,4 @@ async fn argon_test() {
 // Hash password to PHC string ($argon2id$v=19$...)
     let password_hash = argon2.hash_password(password, &salt).unwrap().to_string();
     println!("{}", password_hash);*/
-}
+}  

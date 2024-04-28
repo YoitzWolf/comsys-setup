@@ -56,7 +56,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_writer(non_blocking)
         .init();
     
-    let mut tgen = auth_backend::tokens::TokenGenerator::new();
+    let mut tgen = auth_backend::tokens::TokenGenerator::with_secet(b"#/-K@L1YUU~GaD@r|<20Ul$0u!%U/");
 
     dotenv().ok();
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
