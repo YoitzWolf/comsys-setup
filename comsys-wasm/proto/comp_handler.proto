@@ -1,0 +1,104 @@
+syntax = "proto3";
+package comp_handler;
+
+import "auth.proto";
+import "comp.proto";
+import "generic.proto";
+import "google/protobuf/timestamp.proto";
+
+
+
+service CompetitionHandler {
+    // setup competition. Run service for current competition
+    rpc Run(generic.Id) returns (generic.Empty);
+  
+    // ask about competition queue (последовательность выступлений подряд. может внутри иметь несколько очередей в смысле групп судей)
+    ///rpc getQueue(QueueRequest) returns (QueueResult);
+
+    // получить текущее выступление (выступления), которые сейчас оцениваются. 
+    ///rpc getCurrentActions(CurrentActionsRequest) returns (CurrentActions);
+
+    // send message to cometition`s MessagePool, returns error or messge ID id history
+    //rpc pushMessage(Message) returns (generic.Id);
+
+    //rpc pushMarkMessage(MarkMessage) returns (generic.Id);
+
+    //rpc pushVerificationMessage(VerificationMessage) returns (generic.Id);
+
+    rpc startEQMessageStream(generic.Id) returns (stream EQHistoryMessage);
+
+    rpc pushEQMessage(EQMessage) returns (generic.Id);
+
+    rpc pullEQMessageHistory(EQHistoryRequest) returns (EQHistory);
+
+}
+
+message VoteMessage {
+    // queue num.
+    int32 queue_id = 2;
+    // team action id
+    int32 action_id = 3;
+    // mark type
+    string mark_type = 4;
+    // mark
+    int32 mark = 5;
+}
+
+enum Verification{
+    Block = 0;
+    Approve = 1;
+}
+
+message VerifyVoteMessage {
+    // message id in the competition pool
+    int32 target_message_id = 1;    
+    Verification verdict = 2;
+}
+
+message FixVotingMessage {
+    int32 queue_id = 1;
+    int32 action_id = 3;
+    Verification verdict = 2;
+}
+
+message TryNext {
+    int32 queue_id = 1;
+}
+
+message BlockMessage {
+    int32 queue_id = 1;
+}
+
+message ChangeMessage {
+    int32 queue_id = 1;
+}
+
+message EQMessage {
+    int32 comp_id = 1;
+    auth.UserView author = 2;
+    string signature = 3;
+    oneof message {
+        VoteMessage vote_message = 4;
+        VerifyVoteMessage verify_message = 5;
+        FixVotingMessage fix_voting = 6;
+        TryNext try_next = 7;
+        BlockMessage block = 8;
+        //ChangeMessage skip = 9;
+    }
+
+}
+
+message EQHistoryMessage {
+    int32 message_id = 1;
+    EQMessage message = 2;
+}
+
+message EQHistoryRequest {
+    int32 comp_id = 1;
+    int32 deep = 2;
+}
+
+message EQHistory {
+    int32 comp_id = 1;
+    repeated EQHistoryMessage history = 2;
+}

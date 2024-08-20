@@ -4,11 +4,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .compile(&["proto/auth.proto"], &["proto"])?;*/
     tonic_build::configure()
         .out_dir("./src/grpc/")
-        .build_server(false)
-        .compile(
-            &["./proto/auth.proto"],
-            &["../proto"],
+        .extern_path(
+            ".google.protobuf.Timestamp",
+            "::prost_wkt_types::Timestamp"
         )
-        .unwrap();
+        .build_client(true)
+        .build_server(false)
+        .type_attribute(".", r"#[derive(serde::Deserialize, serde::Serialize)]")
+        //.proto_path("./proto")
+        .compile(
+            &[
+                "auth.proto",
+                "generic.proto",
+                "comp.proto",
+                "comp_handler.proto"
+            ], &["./proto"],
+        )?;
     Ok(())
 }

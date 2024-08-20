@@ -2,8 +2,10 @@
 # see https://diesel.rs/guides/configuring-diesel-cli
 
 [print_schema]
-file = "src/schema.rs"
-custom_type_derives = ["diesel::query_builder::QueryId"]
+file = "./src/schema.rs"
+custom_type_derives = ["diesel::query_builder::QueryId", "std::fmt::Debug"]
+generate_missing_sql_type_definitions = true
+with_docs = true
 
 [migrations_directory]
 dir = "migrations"

@@ -4,7 +4,9 @@ CREATE TABLE tokens
     id SERIAL PRIMARY KEY NOT NULL,
     hash TEXT NOT NULL,
     ttype INTEGER NOT NULL,
-    owner INTEGER NOT NULL REFERENCES users(id),
+    owner INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     sub TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    expire_at TIMESTAMP NOT NULL,
     UNIQUE (hash)
-)
+);

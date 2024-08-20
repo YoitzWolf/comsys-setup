@@ -1,0 +1,139 @@
+syntax = "proto3";
+package comp;
+
+import "auth.proto";
+import "generic.proto";
+import "google/protobuf/timestamp.proto";
+/*service NominationDeclarator {
+  rpc NewNomination(NominationDeclaration) returns (generic.IdResult);
+}*/
+
+service CompetitionDeclarator {
+  // Создать описание соревнования
+  rpc DeclareCompetition(CompDeclaration) returns (DeclareCompetitionResult);
+  // Изменить описание
+  rpc ModifyCompetition(ModCompDeclarationRequest) returns (generic.GenericResultMessage);
+
+  rpc RemakeStaffPasswords(generic.Id) returns (PasswordPackage);
+
+  rpc GetCompsStatus(generic.IdsList) returns (CompsStatusMessage);
+
+  rpc GetCompsIds(generic.Empty) returns (generic.IdsList);
+
+  rpc GetCompsViews(generic.IdsList) returns (CompsList);
+
+  rpc GetCompDeclaration(generic.Id) returns (CompDeclaration);
+}
+
+
+
+
+message Participant {
+
+  enum Gender {
+    Unknown = 0; // типа паркетный
+    Male = 1; // ну понятно
+    Female = 2; // очевидно
+  }
+
+  int32 uid = 1; // Local(Competition) user_id; Данное поле НЕ соответствует каким-либо uid в системе авторизации и аунтефикации.
+  string name = 2;
+  Gender gender = 3;
+  google.protobuf.Timestamp birthdate = 4;
+  repeated string extra_personal = 5;
+}
+
+message Team {
+  int32 tid = 1; // Local(Competition) team Id
+  string nom = 2; // Nomination
+  repeated int32 participants = 3; // Participants Ids
+}
+
+message NominationDeclaration {
+  string title = 1;
+  // team id <-> team
+  map <int32, Team> teams = 2;
+  // index = order, items = team ids
+  repeated int32 inner_queue = 3;
+  /*generic.IntPair ages = 2;
+  int64   group_size   = 3;*/
+}
+
+message CompetitionQueue {
+  int32 id = 1;
+  repeated NominationDeclaration nomination_list = 2;
+}
+
+message CompDeclaration {
+  string title = 1;
+  bool public = 2;
+  int32 related_organisation_id = 3;
+  optional generic.DatePair dates = 4;
+  optional string place = 5;
+  optional string descr = 6;
+  JudgeScheme scheme = 7;
+  repeated Participant part_list = 9;
+  repeated CompetitionQueue queues = 10;
+}
+
+message PasswordPackage {
+  message Pack{
+    string mark = 1;
+    repeated auth.AuthRequest logins=2;
+  }
+  JudgeScheme scheme = 1;
+  repeated PasswordPackage.Pack passwords = 2;
+}
+
+message DeclareCompetitionResult {
+  generic.IdResult result=1;
+  PasswordPackage staff=2;
+}
+
+enum ModDeclarationCommand {
+  Delete = 0;
+  Remake_temp_pwds = 1;
+}
+
+message ModCompDeclarationRequest {
+  int32 comp_id = 1;
+  oneof command {
+    CompDeclaration redeclare = 2;
+    ModDeclarationCommand single_command = 3;
+  }
+}
+
+
+// Comp Lifestatus:
+// Declaration -> Waiting -> Registration -> Waiting -> Running -> Completed
+enum CompStatus {
+  Declaration = 0;  // Status when created, used until owner change it
+  Registration = 1; // Team Registration process
+  Waiting = 2;      // Frozen status, just waiting.
+  Running = 3;      // Comp is running
+  Completed = 4;    // Completed (Archived)
+  Unknown = 5;      // UNKNOWN or no Access
+}
+
+message CompsStatusMessage {
+  message CompStatusPair{
+    int32 comp_id =1;
+    CompStatus status =2;
+  }
+
+  repeated CompStatusPair statuses=1;
+}
+
+message CompsList {
+  message CompView{
+    int32 id = 1;
+    CompDeclaration declaration = 2;
+  }
+  map<int32, CompView> comp_views = 1;
+}
+
+
+enum JudgeScheme {
+  FourFourTwo = 0;
+  SixSixTwo = 1;
+}

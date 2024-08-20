@@ -1,0 +1,44 @@
+syntax = "proto3";
+package generic;
+
+
+import "google/protobuf/timestamp.proto";
+
+enum GenericResult {
+  Ok  = 0;
+  Err = 1;
+}
+
+message GenericResultMessage{
+  GenericResult r = 1;
+}
+
+message Id {
+  int32 id = 1;
+}
+
+message IdResult {
+  oneof result {
+    int32 obj_id = 1;
+    string err_msg = 2;
+  }
+}
+
+message DatePair {
+  google.protobuf.Timestamp begins = 1;
+  google.protobuf.Timestamp ends   = 2;
+}
+
+message IntPair {
+  int32 min = 1;
+  int32 max = 2;
+}
+
+message IdsList{
+  repeated int32 obj_ids=1;
+}
+
+
+message Empty {
+
+}

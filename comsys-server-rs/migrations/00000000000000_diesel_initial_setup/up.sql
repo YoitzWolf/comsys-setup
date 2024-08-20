@@ -20,6 +20,8 @@ CREATE OR REPLACE FUNCTION diesel_manage_updated_at(_tbl regclass) RETURNS VOID 
 BEGIN
     EXECUTE format('CREATE TRIGGER set_updated_at BEFORE UPDATE ON %s
                     FOR EACH ROW EXECUTE PROCEDURE diesel_set_updated_at()', _tbl);
+
+    CREATE TRIGGER trigger_delete_old_tokens AFTER INSERT ON tokens EXECUTE PROCEDURE delete_old_tokens();
 END;
 $$ LANGUAGE plpgsql;
 
@@ -34,3 +36,12 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION delete_old_tokens() RETURNS TRIGGER AS $$
+BEGIN
+    DELETE FROM tokens WHERE expire_at < CURRENT_TIMESTAMP;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
