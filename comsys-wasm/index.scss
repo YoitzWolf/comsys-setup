@@ -387,13 +387,13 @@ a {
   }
   .main {
     margin-top: 3.75rem !important;
-    :first-child {
-      box-sizing: border-box;
-      padding-right: 0.1rem !important;
-       * {
-         padding-right: initial;
-       }
-    }
+  }
+  .main:first-child {
+    box-sizing: border-box;
+    padding-right: 0.1rem !important;
+     * {
+       padding-right: initial;
+     }
   }
 
   .inline-fx-container {
@@ -834,6 +834,16 @@ html {
     }
 }
 
+.cards-stack {
+  @extend .stack;
+  .card {
+    width: 100%;
+    display: block;
+    background-color: var(--lightgray);
+    text-align: left;
+    padding: 0.5em;
+  }
+}
 
 .centerd-card {
   margin-bottom: 2.5rem;
@@ -878,11 +888,25 @@ html {
   //}
 }
 
+.stretch {
+  box-sizing: border-box;
+  width: 100%;
+  height: auto;
+  display: flexbox;
+  > * {
+    margin: 0;
+    width: auto;
+    box-sizing: content-box !important;
+    display: inline-block;
+  }
+}
+
 .stack {
-  * {
+  width : 100%;
+  > * {
     display: block;
-    width: 100%;
-    box-sizing: border-box;
+    margin: 0;
+    box-sizing: border-box !important;
   }
 }
 
@@ -890,9 +914,6 @@ form {
   & > * {
     margin: auto;
     margin-top: 0.5em;
-    * {
-      //margin: auto;
-    }
   }
    input, textarea, select {
        padding: 0.5em;
@@ -1004,8 +1025,18 @@ form, fieldset {
   background-color: var(--ok);
   color: var(--dark);
   border-radius: 100vh;
-  padding-left: 0.6rem !important;
-  padding-right: 0.6rem !important;
+  padding-left: 0.8rem !important;
+  padding-right: 0.8rem !important;
+}
+
+.marked-pill {
+  //@extend cursor;
+  width: fit-content;
+  background-color: var(--lightgray);
+  color: var(--dark);
+  border-radius: 100vh;
+  padding-left: 0.8rem !important;
+  padding-right: 0.8rem !important;
 }
 
 .marked-err {
@@ -1040,8 +1071,6 @@ i, b {
     color: var(--semidark);
   }
 }
-
-
 
 .lds-dual-ring,
 .lds-dual-ring:after {
@@ -1125,4 +1154,103 @@ table.table {
       }
     }
   }
+}
+
+.accent-block {
+  color: var(--light);
+  background: var(--semidark);
+  padding: 1em;
+  border-radius: 1em;
+}
+
+.accent-white-block {
+  color: var(--semidark);
+  background: var(--white);
+  padding: 1em;
+  border-radius: 1em;
+}
+
+.err-block {
+  color: var(--light);
+  background: var(--err);
+  padding: 1em;
+  border-radius: 1em;
+}
+
+.ok-block {
+  color: var(--dark);
+  background: var(--ok);
+  padding: 1em;
+  border-radius: 1em;
+}
+
+.bold {
+  font-weight: 900;
+}
+
+.btn-image {
+  width:  1.5em;
+  height: 1.5em;
+  span {
+    padding: 0;
+    width:  80%;
+    height: 80%;
+    margin: auto;
+    display: block;
+    background-size: cover;
+  }
+}
+
+.ok-image {
+  @extend .btn-image;
+  * {
+    background: url("/util_img/streamline/Check-1--Streamline-Ultimate.png") no-repeat;
+  }
+}
+
+.err-image {
+  @extend .btn-image;
+  * {
+    background: url("/util_img/streamline/Close--Streamline-Ultimate.png") no-repeat;
+  }
+}
+
+.min-45 {
+  min-width: 40%;
+  //max-width: fit-content;
+}
+
+.padding-frame {
+  box-sizing: border-box;
+  padding: 0.1em;
+}
+
+.margin-frame {
+  //box-sizing: border-box;
+  margin: 0.1em;
+}
+
+.little-card {
+  padding: 0.5em;
+  border: var(--dark) solid 2px;
+  border-radius: 0.5em;
+  background-color: var(--white);
+  color: var(--dark);
+}
+
+
+.little-card-err {
+  padding: 0.5em;
+  border: var(--err) solid 2px;
+  border-radius: 0.5em;
+  background-color: var(--lightgray);
+  color: var(--semidark);
+}
+
+.little-card-wait {
+  padding: 0.5em;
+  border: var(--semidark) solid 2px;
+  border-radius: 0.5em;
+  background-color: var(--lightgray);
+  color: var(--semidark);
 }

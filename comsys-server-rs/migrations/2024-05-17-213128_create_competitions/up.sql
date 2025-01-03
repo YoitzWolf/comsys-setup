@@ -10,5 +10,6 @@ CREATE TABLE competitions (
     place TEXT,
     descr TEXT,
     scheme INTEGER NOT NULL,
+    queues INTEGER NOT NULL,
     status INTEGER NOT NULL DEFAULT 0
 )

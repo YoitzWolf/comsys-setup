@@ -50,10 +50,12 @@ pub enum Permissions {
     Moderator(AccessType<i32>),
     /// Administrator of Organisation. Don't need if you pointed as owner.
     Administrate,
-    /// Judge(competition, query, mark group type)
+    /// Judge(competition, queue, mark group type)
     Judge(i32, i32, i32),
+    /// Secretary(competition)
     Secretary(i32),
-    Supervisor(i32),
+    /// Arbitor(competition, queue)
+    Arbitor(i32, i32),
 }
 
 impl Permissions {
@@ -62,7 +64,11 @@ impl Permissions {
         serde_json::to_string(dat)
     }
 
-    pub fn parse(dat: &str) -> serde_json::Result<Vec<Self>> {
+    pub fn parse(dat: &str) -> serde_json::Result<Self> {
+        serde_json::from_str(dat)
+    }
+
+    pub fn parse_arr(dat: &str) -> serde_json::Result<Vec<Self>> {
         serde_json::from_str(dat)
     }
 }
@@ -76,7 +82,7 @@ impl ToString for Permissions {
             Permissions::Administrate => "Administrate",
             Permissions::Judge(_, _, _) => "Judge",
             Permissions::Secretary(_) => "Secreatary",
-            Permissions::Supervisor(_) => "Supervisor",
+            Permissions::Arbitor(_, _) => "Arbitor",
         }.into()
     }
 }
@@ -88,7 +94,7 @@ impl PartialEq for Permissions {
             (Self::Moderator(l0), Self::Moderator(r0)) => l0 == r0,
             (Self::Judge(l0, l1, l2), Self::Judge(r0, r1, r2)) => l0 == r0 && l1 == r1 && l2 == r2,
             (Self::Secretary(l0), Self::Secretary(r0)) => l0 == r0,
-            (Self::Supervisor(l0), Self::Supervisor(r0)) => l0 == r0,
+            (Self::Arbitor(l0, l1), Self::Arbitor(r0, r1)) => l0 == r0 && l1==r1,
             _ => core::mem::discriminant(self) == core::mem::discriminant(other),
         }
     }
@@ -302,9 +308,11 @@ impl TokenGenerator {
         validation.sub = Some(author);
         match jsonwebtoken::decode::<TokenClaim>(&token, &self.decoding, &validation) {
             Ok(t) => {
+                //println!("Token OK!");
                 Ok(t)
             }
-            Err(_) => {
+            Err(_e) => {
+                //println!("Token Err {:?}!", e);
                 Err(())
             }
         }

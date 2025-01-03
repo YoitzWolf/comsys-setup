@@ -4,6 +4,11 @@ package generic;
 
 import "google/protobuf/timestamp.proto";
 
+
+message StringMessage{
+  string str = 1;
+}
+
 enum GenericResult {
   Ok  = 0;
   Err = 1;
@@ -36,6 +41,10 @@ message IntPair {
 
 message IdsList{
   repeated int32 obj_ids=1;
+}
+
+message IntList{
+  repeated int32 i=1;
 }
 
 

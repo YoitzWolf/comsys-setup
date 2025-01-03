@@ -51,7 +51,7 @@ pub fn main_component(prop: &BaseTemplateProps) -> Html {
                             {"Меню пользователя"}
                         </div>
                         <ul>
-                            <li>{"аккаунт"}</li>
+                            <li><a href={"/webapp/users/cabinet"}>{"аккаунт"}</a></li>
                             <li>
                                 <Link<WebAppRoute>
                                     to={WebAppRoute::Comps}

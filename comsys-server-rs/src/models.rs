@@ -11,8 +11,7 @@ use chrono::NaiveDateTime;
 #[diesel(table_name = comp_data)]
 pub struct CompData {
     pub id: i32,
-    pub queues: Vec<u8>,
-    pub participants: Vec<u8>,
+    pub queues: Vec<u8>
 }
 
 #[derive(Queryable,Selectable,Debug,Clone,Insertable, Identifiable)]
@@ -35,6 +34,7 @@ pub struct Competition {
     pub place: Option<String>,
     pub descr: Option<String>,
     pub scheme: i32,
+    pub queues: i32,
     pub status: i32,
 }
 
@@ -72,6 +72,7 @@ pub struct UserOrg {
 pub struct User {
     pub id: i32,
     pub login: String,
+    pub selfname: String,
     pub hash: String,
 }
 

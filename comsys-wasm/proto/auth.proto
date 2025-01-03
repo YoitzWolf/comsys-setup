@@ -1,6 +1,8 @@
 syntax = "proto3";
 package auth;
 
+// import "generic.proto";
+
 service Authentication {
     rpc Authorize(AuthRequest) returns (AuthResult); // Возвращает AccessToken или ошибку
     rpc GetAuth(GetAuthTokenRequest) returns (AuthResult); // Возвращает AuthToken, который живет не так долго
@@ -75,4 +77,5 @@ message RegisterResult {
 message UserView {
   int32 uid = 1;
   string login = 2;
+  string selfname = 3;
 }

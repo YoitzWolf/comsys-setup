@@ -28,7 +28,7 @@ impl PermissionComparator {
             Permissions::Administrate => self.0.contains(&perm),
             Permissions::Judge(_, _, _) => self.0.contains(&perm),
             Permissions::Secretary(_) => self.0.contains(&perm),
-            Permissions::Supervisor(_) => self.0.contains(&perm),
+            Permissions::Arbitor(_, _) => self.0.contains(&perm),
         }
     }
 }
@@ -37,11 +37,68 @@ pub async fn has_ability_to_create(conn: &mut AsyncPgConnection, uid: i32, oid: 
     is_owner_of(conn, uid, oid).await.is_ok() // TODO
 }
 
-pub async fn has_ability_to_modify(conn: &mut AsyncPgConnection, uid: i32, cid: i32, perms: &Vec<(i32, Vec<Permissions>)>) -> bool {
+pub async fn has_ability_to_modify(conn: &mut AsyncPgConnection, uid: i32, coid: i32, perms: &Vec<(i32, Vec<Permissions>)>) -> bool {
     // TODO!
-    let competition_result = get_competition(conn, cid).await;
-    if let Ok(comp) = competition_result{
-        is_owner_of(conn, uid, comp.organisation).await.is_ok()
+    let competition_result = get_competition(conn, coid).await;
+
+    if let Ok(declaration) = competition_result{
+        if perms.iter().filter(|(oid, perms)| {
+            declaration.organisation.eq(oid)
+        }).map(|(_, perms)| {perms.clone()})
+          .collect::<Vec<Vec<Permissions>>>()
+          .concat()
+          .iter()
+          .cloned()
+          .filter(|perm| {
+            match perm {
+                Permissions::Administrate => true,
+                Permissions::Moderator(access) => match access {
+                    crate::AccessType::All => true,
+                    crate::AccessType::List(oplist) => oplist.contains(&coid),
+                },
+                Permissions::Secretary(_coid) => coid.eq(_coid),
+                _ => false,
+            }
+          }).collect::<Vec<_>>().len() > 0 
+        {
+            true 
+        } else {
+            is_owner_of(conn, uid, declaration.organisation).await.is_ok()
+        }
+    } else {
+        false
+    }
+}
+
+pub async fn has_ability_to_see_view(conn: &mut AsyncPgConnection, uid: i32, coid: i32, perms: &Vec<(i32, Vec<Permissions>)>) -> bool {
+    // TODO!
+    let competition_result = get_competition(conn, coid).await;
+
+    if let Ok(declaration) = competition_result{
+        if perms.iter().filter(|(oid, perms)| {
+            declaration.organisation.eq(oid)
+        }).map(|(_, perms)| {perms.clone()})
+          .collect::<Vec<Vec<Permissions>>>()
+          .concat()
+          .iter()
+          .cloned()
+          .filter(|perm| {
+            match perm {
+                Permissions::Administrate => true,
+                Permissions::Moderator(access) | Permissions::Watch(access) => match access {
+                    crate::AccessType::All => true,
+                    crate::AccessType::List(oplist) => oplist.contains(&coid),
+                },
+                Permissions::Secretary(_coid) | Permissions::Arbitor(_coid, _)=> coid.eq(_coid),
+                Permissions::Judge(_coid, _, _) => coid.eq(_coid),
+                _ => false,
+            }
+          }).collect::<Vec<_>>().len() > 0 
+        {
+            true 
+        } else {
+            is_owner_of(conn, uid, declaration.organisation).await.is_ok()
+        }
     } else {
         false
     }

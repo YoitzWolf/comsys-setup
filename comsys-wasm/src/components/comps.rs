@@ -1,29 +1,36 @@
-use std::collections::HashMap;
-use std::default::Default;
-use yew_router::prelude::*;
-use std::rc::Rc;
-use std::str::FromStr;
-use wasm_bindgen::JsCast;
-use validator::Validate;
-use web_sys::{js_sys, HtmlElement, HtmlInputElement, MouseEvent};
-use yew::{classes, function_component, html, use_context, Callback, ContextProvider, Html, NodeRef, Properties, Reducible, TargetCast, UseReducerHandle, UseStateHandle};
-use yew::functional::{use_reducer, use_reducer_eq};
-use yew_autoprops::autoprops;
-use chrono::prelude::*;
-use tonic::{IntoRequest, Request, Response, Status};
+use crate::components::comp_cardview::CompetitionCard;
 use crate::components::context_wraps::{DropSetAction, IdListContext};
-use crate::context::*;
 use crate::components::{AccessDeniedMessage, Button, HidingView, LoadingView, Spacer};
-use crate::grpc::comp::participant::Gender;
-use crate::grpc::comp::{self, CompDeclaration, CompetitionQueue, CompsList, JudgeScheme, Participant, Team};
-use crate::grpc::generic::{self, id_result, DatePair, Empty, IdResult, IdsList};
-use crate::utils::parse_dateinput;
-use crate::xslx_conv::prelude::*;
+use crate::context::*;
 use crate::fs::*;
 use crate::grpc::comp::comps_list::CompView;
+use crate::grpc::comp::participant::Gender;
+use crate::grpc::comp::{
+    self, CompDeclaration, CompetitionQueue, CompsList, JudgeScheme, NominationDeclaration,
+    Participant, Team,
+};
 use crate::grpc::generic::id_result::Result::ObjId;
+use crate::grpc::generic::{self, id_result, DatePair, Empty, IdResult, IdsList};
 use crate::reqs::{get_access_shortcut, get_competition_decl_shortcut};
 use crate::router::WebAppRoute;
+use crate::utils::parse_dateinput;
+use chrono::prelude::*;
+use clerk::xslx_conv::prelude::*;
+use std::collections::HashMap;
+use std::default::Default;
+use std::ops::Index;
+use std::rc::Rc;
+use std::str::FromStr;
+use tonic::Request;
+use validator::Validate;
+use wasm_bindgen::JsCast;
+use web_sys::{js_sys, HtmlElement, HtmlInputElement, MouseEvent};
+use yew::functional::{use_reducer, use_reducer_eq};
+use yew::{
+    classes, function_component, html, use_context, use_effect, use_node_ref, Callback, ContextProvider, Html, NodeRef, Properties, Reducible, TargetCast, UseReducerHandle, UseStateHandle
+};
+use yew_autoprops::autoprops;
+use yew_router::prelude::*;
 
 #[derive(Debug, Validate, PartialEq, Clone, Properties, Default)]
 pub struct NominationFormModel {
@@ -31,7 +38,7 @@ pub struct NominationFormModel {
     pub title: String,
     pub descr: String,
     //pub categories: Option<Vec<i64>>,
-    pub participants: HashMap::<i64, Vec<Participant>>,
+    pub participants: HashMap<i64, Vec<Participant>>,
 }
 
 impl NominationFormModel {
@@ -40,7 +47,7 @@ impl NominationFormModel {
             title: "Новая номинация".to_string(),
             descr: "Без описания".to_string(),
             //categories: Some(1),
-            participants: HashMap::<i64, Vec<Participant>>::new()
+            participants: HashMap::<i64, Vec<Participant>>::new(),
         }
     }
 }
@@ -48,7 +55,7 @@ impl NominationFormModel {
 #[derive(Debug, PartialEq, Clone, Properties)]
 pub struct Nomination {
     name: String,
-    parts: Vec<Team>
+    parts: Vec<Team>,
 }
 pub(crate) enum NomEditMsg {
     Delete(usize),
@@ -58,13 +65,17 @@ pub(crate) enum NomEditMsg {
 
 #[autoprops]
 #[function_component(EditableNomination)]
-pub fn editable_nomination(model: &NominationFormModel, mykey: usize, chng_call: Callback<NomEditMsg>) -> Html {
+pub fn editable_nomination(
+    model: &NominationFormModel,
+    mykey: usize,
+    chng_call: Callback<NomEditMsg>,
+) -> Html {
     //let state = yew::use_state_eq(|| { model.clone() } );
-    let disabled_state = yew::use_state_eq(|| { true } );
+    let disabled_state = yew::use_state_eq(|| true);
 
-    let title_in: NodeRef =NodeRef::default();
-    let desc_in: NodeRef =NodeRef::default();
-    let jujdj_cnt_in: NodeRef =NodeRef::default();
+    let title_in: NodeRef = NodeRef::default();
+    let desc_in: NodeRef = NodeRef::default();
+    let jujdj_cnt_in: NodeRef = NodeRef::default();
 
     let change_disable = {
         //let state = state.clone();
@@ -72,24 +83,22 @@ pub fn editable_nomination(model: &NominationFormModel, mykey: usize, chng_call:
         let title_in = title_in.clone();
         let desc_in = desc_in.clone();
         let jujdj_cnt_in = jujdj_cnt_in.clone();
-        Callback::from(
-            {
-                let model = model.clone();
-                let chng_call = chng_call.clone();
-                move |e: MouseEvent| {
-                    web_sys::console::log_1(&"Change status changed!".to_string().into());
-                    if !*(disabled_state) {
-                        let new_model = NominationFormModel {
-                            title: title_in.cast::<HtmlInputElement>().unwrap().value(),
-                            descr: desc_in.cast::<HtmlInputElement>().unwrap().value(),
-                            ..model.clone()
-                        };
-                        chng_call.emit(NomEditMsg::Edit(mykey, new_model));
+        Callback::from({
+            let model = model.clone();
+            let chng_call = chng_call.clone();
+            move |e: MouseEvent| {
+                web_sys::console::log_1(&"Change status changed!".to_string().into());
+                if !*(disabled_state) {
+                    let new_model = NominationFormModel {
+                        title: title_in.cast::<HtmlInputElement>().unwrap().value(),
+                        descr: desc_in.cast::<HtmlInputElement>().unwrap().value(),
+                        ..model.clone()
                     };
-                    disabled_state.set(!(*disabled_state));
-                }
+                    chng_call.emit(NomEditMsg::Edit(mykey, new_model));
+                };
+                disabled_state.set(!(*disabled_state));
             }
-        )
+        })
     };
     html! {
         <div class={classes!("card")}>
@@ -138,57 +147,57 @@ pub fn editable_nomination(model: &NominationFormModel, mykey: usize, chng_call:
 #[function_component(NewComp)]
 pub fn new_comp() -> Html {
     let ctx = use_context::<GlobalContext>().expect("no ctx found");
-    let completed_redir = yew::use_state_eq(|| {None});
+    let completed_redir = yew::use_state_eq(|| None);
 
     let finish = {
         let completed_redir = completed_redir.clone();
-        Callback::from(
-            move |res: Option<CompDeclaration>| {
-                let completed_redir = completed_redir.clone();
-                if let Some(decl) = res{
-                    web_sys::console::log_1(&format!("New Declaration: {:?}", decl).into());
-                    //get_auth_intercept
-                    let mut client = Context::get_comp_grpc_client(&ctx);
-                    wasm_bindgen_futures::spawn_local(
-                        async move{
-                            let result = client.declare_competition(Request::new(decl)).await;
-                            if let Ok(responce) = result {
-                                let (meta, id_res ,ext) = responce.into_parts();
-                                if let Some(IdResult{ result: Some(ObjId(x)) }  ) = id_res.result {
-                                    web_sys::console::log_1(&format!("Declared: {}", x).into());
-                                    completed_redir.set(Some((x, id_res.staff.to_owned())))
-                                } else {
-                                    web_sys::console::log_1(&"Declaration Error, check data!".into());
-                                }
-                            } else {
-                                web_sys::console::log_1(&"Server returned Error! Check auth and data".into());
-                            }
+        Callback::from(move |res: Option<CompDeclaration>| {
+            let completed_redir = completed_redir.clone();
+            if let Some(decl) = res {
+                web_sys::console::log_1(&format!("New Declaration: {:?}", decl).into());
+                //get_auth_intercept
+                let mut client = Context::get_comp_grpc_client(&ctx);
+                wasm_bindgen_futures::spawn_local(async move {
+                    let result = client.declare_competition(Request::new(decl)).await;
+                    if let Ok(responce) = result {
+                        let (meta, id_res, ext) = responce.into_parts();
+                        if let Some(IdResult {
+                            result: Some(ObjId(x)),
+                        }) = id_res.result
+                        {
+                            web_sys::console::log_1(&format!("Declared: {}", x).into());
+                            completed_redir.set(Some((x, id_res.staff.to_owned())))
+                        } else {
+                            web_sys::console::log_1(&"Declaration Error, check data!".into());
                         }
-                    )
-                }
+                    } else {
+                        web_sys::console::log_1(
+                            &"Server returned Error! Check auth and data".into(),
+                        );
+                        web_sys::console::log_1(&format!("Debug: {:?}", result).into());
+                    }
+                })
             }
-        )
+        })
     };
     let navigator = use_navigator().unwrap();
     fn local_fn_upload_file_and_redirect(x: i32, navigator: Navigator) {
-        wasm_bindgen_futures::spawn_local(
-            async move {
-                let window = web_sys::window().expect("no global `window` exists");
-                let document = window.document().expect("should have a document on window");
-                loop {
-                    if let Some(link)  = document.get_element_by_id("download") {
-                        link.dyn_into::<HtmlElement>().unwrap().click();
-                        navigator.push( &WebAppRoute::ModComp{id: x} );
-                        break
-                    }
+        wasm_bindgen_futures::spawn_local(async move {
+            let window = web_sys::window().expect("no global `window` exists");
+            let document = window.document().expect("should have a document on window");
+            loop {
+                if let Some(link) = document.get_element_by_id("download") {
+                    link.dyn_into::<HtmlElement>().unwrap().click();
+                    navigator.push(&WebAppRoute::ModComp { id: x });
+                    break;
                 }
             }
-        );
+        });
     }
 
-    let cctx  = use_reducer_eq(|| CompetitionDeclarationWrapper::default() );
+    let cctx = use_reducer_eq(|| CompetitionDeclarationWrapper::default());
     html! {
-        
+
         <>
             <h1>{"Создание соревнования"}</h1>
             {
@@ -209,7 +218,7 @@ pub fn new_comp() -> Html {
                                         }
                                     ).collect::<Vec<String>>().join("\n")
                                 )
-                            }   
+                            }
                         ).collect::<Vec<String>>()
                             .join("\n-----=====-----\n");
 
@@ -223,9 +232,9 @@ pub fn new_comp() -> Html {
                             //Some("text/plain"),
                             //Some(Utc::now().into())
                         ).unwrap();
-                        
+
                         let url = web_sys::Url::create_object_url_with_blob(&blob).unwrap();
-                        
+
                         html! {
                             <>
                                 <a id="download" href={url} download="CompetitionStaffPasswords.txt"/>
@@ -256,14 +265,12 @@ pub fn new_comp() -> Html {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CompetitionDeclarationWrapper {
-    declaration: Option<CompDeclaration>
+    declaration: Option<CompDeclaration>,
 }
 
 pub enum CompetitionDeclarationWrapperContextAction {
-
     Setup(CompDeclaration),
-    Drop
-
+    Drop,
 }
 
 impl Reducible for CompetitionDeclarationWrapper {
@@ -280,10 +287,9 @@ impl Reducible for CompetitionDeclarationWrapper {
                 let mut newc = self.as_ref().clone();
                 newc.declaration = None;
                 Rc::new(newc)
-            }
-             /*_ => {
-                 self
-             }*/
+            } /*_ => {
+                  self
+              }*/
         }
     }
 }
@@ -298,36 +304,36 @@ pub fn modificate_comp(cid: i32) -> Html {
     let compstate = use_reducer_eq(|| CompetitionDeclarationWrapper::default());
     web_sys::console::log_1(&"Mod Comp Page Loading!".to_string().into());
 
-    if compstate.declaration.is_none() {get_competition_decl_shortcut(ctx.clone(), compstate.clone(), cid);}
+    if compstate.declaration.is_none() {
+        get_competition_decl_shortcut(ctx.clone(), compstate.clone(), cid);
+    }
 
     let finish = {
         //let completed_redir = completed_redir.clone();
-        Callback::from(
-            move |res: Option<CompDeclaration>| {
-                /*let completed_redir = completed_redir.clone();
-                if let Some(decl) = res{
-                    web_sys::console::log_1(&format!("New Declaration: {:?}", decl).into());
-                    //get_auth_intercept
-                    let mut client = Context::get_comp_grpc_client(&ctx);
-                    wasm_bindgen_futures::spawn_local(
-                        async move{
-                            let result = client.declare_competition(Request::new(decl)).await;
-                            if let Ok(responce) = result {
-                                let (meta, id_res ,ext) = responce.into_parts();
-                                if let Some(IdResult{ result: Some(ObjId(x)) }  ) = id_res.result {
-                                    web_sys::console::log_1(&format!("Declared: {}", x).into());
-                                    completed_redir.set(Some(x))
-                                } else {
-                                    web_sys::console::log_1(&"Declaration Error, check data!".into());
-                                }
+        Callback::from(move |res: Option<CompDeclaration>| {
+            /*let completed_redir = completed_redir.clone();
+            if let Some(decl) = res{
+                web_sys::console::log_1(&format!("New Declaration: {:?}", decl).into());
+                //get_auth_intercept
+                let mut client = Context::get_comp_grpc_client(&ctx);
+                wasm_bindgen_futures::spawn_local(
+                    async move{
+                        let result = client.declare_competition(Request::new(decl)).await;
+                        if let Ok(responce) = result {
+                            let (meta, id_res ,ext) = responce.into_parts();
+                            if let Some(IdResult{ result: Some(ObjId(x)) }  ) = id_res.result {
+                                web_sys::console::log_1(&format!("Declared: {}", x).into());
+                                completed_redir.set(Some(x))
                             } else {
-                                web_sys::console::log_1(&"Server returned Error! Check auth and data".into());
+                                web_sys::console::log_1(&"Declaration Error, check data!".into());
                             }
+                        } else {
+                            web_sys::console::log_1(&"Server returned Error! Check auth and data".into());
                         }
-                    )
-                }*/
-            }
-        )
+                    }
+                )
+            }*/
+        })
     };
     html! {
         <>
@@ -341,11 +347,11 @@ pub fn modificate_comp(cid: i32) -> Html {
                             /*<div class="stack">
                                 <h3>{"Допуск судей"}</h3>
                                 <Spacer space="0.5em"/>
-                                <div>   
+                                <div>
                                     <Button text={"Сгенерировать и Получить данные входа"} onclick={ |_| {} }/>
                                 </div>
                             </div>*/
-                        </ContextProvider<CompetitionContext>>   
+                        </ContextProvider<CompetitionContext>>
                     }
                 } else {
                     html!{ <LoadingView/> }
@@ -355,7 +361,6 @@ pub fn modificate_comp(cid: i32) -> Html {
     }
 }
 
-
 // TODO при добавлении файла таблицы в NewCompForm сбрасываются часть полей формы
 
 #[autoprops]
@@ -363,182 +368,220 @@ pub fn modificate_comp(cid: i32) -> Html {
 pub fn new_comp_form(res_callback: &Callback<Option<CompDeclaration>>) -> Html {
     let decl = use_context::<CompetitionContext>().expect("no ctx found");
     let ctx = use_context::<GlobalContext>().expect("no ctx found");
-    let filedata: UseStateHandle<Option<(Vec<Participant>, Vec<Team>)>> = yew::use_state_eq(|| { None } );
+    let filedata: UseStateHandle<Option<Vec<Vec<NominationDeclaration>>>> =
+        yew::use_state_eq(|| None);
     let file_status = yew::use_state_eq(|| {
         if decl.declaration.is_none() {
             FileLoadStatus::Waiting
         } else {
             FileLoadStatus::Finished("Данные загружены с сервера".to_string())
         }
-        
-    } );
+    });
 
-    let name_ref      = NodeRef::default();
-    let desc_ref      = NodeRef::default();
-    let place_ref     = NodeRef::default();
-    let date_from_ref = NodeRef::default();
-    let date_to_ref   = NodeRef::default();
-    let scheme_ref    = NodeRef::default();
-    let query_ref     = NodeRef::default();
+    let name_ref = use_node_ref();
+    let desc_ref = use_node_ref();
+    let place_ref = use_node_ref();
+    let date_from_ref = use_node_ref();
+    let date_to_ref = use_node_ref();
+    let scheme_ref = use_node_ref();
+    let query_ref = use_node_ref();
 
     // title_in.cast::<HtmlInputElement>().unwrap().value()
 
-    let finish = res_callback.reform(
+    use_effect(
         {
-            let name_ref      = name_ref.clone();
-            let desc_ref      = desc_ref.clone();
-            let place_ref     = place_ref.clone();
-            let date_from_ref = date_from_ref.clone();
-            let date_to_ref   = date_to_ref.clone();
-            let scheme_ref    = scheme_ref.clone();
-            let query_ref     = query_ref.clone();
-            let filedata               = filedata.clone();
-
-            //let noms = noms.clone();
-            let ctx = ctx.clone();
-            move |_: web_sys::MouseEvent| {
-                web_sys::console::log_1(&"Try to parse Comp. Form".into());
-                if (ctx.user.get_token()).is_some() {
-                    web_sys::console::log_1(&"User exist...".into());
-                    let declar = CompDeclaration {
-                        title: name_ref.cast::<HtmlInputElement>().unwrap().value(),
-                        public: false,
-                        related_organisation_id: 1,
-                        queues: {
-                            let mut n = i32::from_str(&query_ref.cast::<HtmlInputElement>().unwrap().value()).unwrap_or(2);
-                            if n <= 0 { n = 1; }
-                            let nomination_list = if let Some((_, d)) = &(*filedata) { TeamVecToNominations(d.clone()).convert() } else { vec![] };
-                            (0..n).map (
-                                |q| {
-                                    CompetitionQueue {
-                                        id: q,
-                                        nomination_list: nomination_list
-                                            .iter()
-                                            .cloned()
-                                            .skip(q as usize)
-                                            .step_by(n as usize)
-                                            .collect()
-                                    }
-                                }
-                            ).collect()
-                        },
-                        scheme: i32::from_str(&scheme_ref.cast::<HtmlInputElement>().unwrap().value()).unwrap_or(0),
-                        dates: {
-                            let fr = date_from_ref.cast::<HtmlInputElement>().unwrap().value();
-                            let to = date_to_ref.cast::<HtmlInputElement>().unwrap().value();
-                            let fr_split = parse_dateinput(fr);
-                            let to_split = parse_dateinput(to);
-                            if let (Some(fr), Some(to)) = (fr_split, to_split) {
-                                web_sys::console::log_1(&format!("Dates: {:?}, {:?}", fr, to).into());
-                                Some(
-                                    DatePair {
-                                        begins: Some(
-                                            fr
-                                            //Timestamp::date(fr.0, fr.1, fr.2).unwrap()
-                                        ),
-                                        ends: Some(
-                                            to
-                                            //Timestamp::date(to.0, to.1, to.2).unwrap()
-                                        ),
-                                    }
-                                )
-                            } else {
-                                web_sys::console::log_1(&"Invalid Dates!".into());
-                                None
-                            }
-                        },
-                        place: {
-                            let s = place_ref.cast::<HtmlInputElement>().unwrap().value();
-                            if !s.is_empty() {
-                                Some(s)
-                            } else {
-                                None
-                            }
-                        },
-                        descr: {
-                            let s = desc_ref.cast::<HtmlInputElement>().unwrap().value();
-                            if !s.is_empty() {
-                                Some(s)
-                            } else {
-                                None
-                            }
-                        },
-                        part_list: if let Some((d, _)) = &(*filedata) { d.clone() } else { vec![] },
-                    };
-                    if declar.is_valid() {
-                        Some(declar)
-                    } else {
-                        None
+            let query_ref = query_ref.clone();
+            let decl = decl.clone();
+            move || {
+                if let Some(val) = query_ref.cast::<HtmlInputElement>() {    
+                    if val.value().len() == 0 {
+                        val.set_value(&{
+                            if let Some(x) = &decl.declaration {
+                                x.queues.len()
+                            } else {2}
+                        }.to_string());
                     }
-
-                } else {
-                    None
                 }
             }
         }
     );
 
-    /*let change_noms = {
-        let noms = noms.clone();
-        Callback::from(
-            move |e: NomEditMsg| {
-                match e {
-                    NomEditMsg::Delete(i) => {
-                        let mut v = (*noms).clone();
-                        v.remove(i);
-                        noms.set(v);
-                    },
-                    NomEditMsg::Edit(i, val) => {
-                        let mut v = (*noms).clone();
-                        v[i] = val;
-                        noms.set(v);
-                    }
-                    NomEditMsg::NewEmpty => {
-                        let mut v = (*noms).clone();
-                        v.push(NominationFormModel::empty());
-                        noms.set(v);
-                    }
-                }
-                web_sys::console::log_1(&format!("Noms: {:?}", noms).into());
-            }
-        )
-    };*/
+    let finish = res_callback.reform({
+        let name_ref = name_ref.clone();
+        let desc_ref = desc_ref.clone();
+        let place_ref = place_ref.clone();
+        let date_from_ref = date_from_ref.clone();
+        let date_to_ref = date_to_ref.clone();
+        let scheme_ref = scheme_ref.clone();
+        let query_ref = query_ref.clone();
+        let filedata = filedata.clone();
 
-    let upload_table_callback = Callback::from(
-        {
+        //let noms = noms.clone();
+        let ctx = ctx.clone();
+        move |_: web_sys::MouseEvent| {
+            web_sys::console::log_1(&"Try to parse Comp. Form".into());
+            if (ctx.user.get_token()).is_some() {
+                web_sys::console::log_1(&"User exist...".into());
+                let declar = CompDeclaration {
+                    title: name_ref.cast::<HtmlInputElement>().unwrap().value(),
+                    public: false,
+                    related_organisation_id: 1,
+                    queues: {
+                        /*let mut n =
+                            i32::from_str(&query_ref.cast::<HtmlInputElement>().unwrap().value())
+                                .unwrap_or(2);
+                        if n <= 0 {
+                            n = 1;
+                        }*/
+                        let nomination_list = if let Some(v) = &(*filedata) {
+                            v
+                        } else {
+                            &vec![]
+                        };
+                        web_sys::console::log_1(&format!("qUEUES: {:?}", &nomination_list.len()).into());
+                        query_ref.cast::<HtmlInputElement>().unwrap().set_value(&nomination_list.len().to_string());
+                        nomination_list.iter().enumerate().map(
+                            |(qid, noms)| {
+                                CompetitionQueue {
+                                    id: i32::try_from(qid).unwrap(),
+                                    nomination_list: {
+                                        noms.clone()
+                                    },
+                                }
+                            }
+                        ).collect()
+                        /*(0..n)
+                            .map(|q| {
+                                CompetitionQueue {
+                                    id: q,
+                                    nomination_list: {
+                                        nomination_list[usize::try_from(q).unwrap()].clone()
+                                        //v.clone()
+                                    }, //.iter<Vec<>>()
+                                       //.cloned()
+                                       //.skip(q as usize)
+                                       //.step_by(n as usize)
+                                       //.collect()
+                                }
+                            })
+                            .collect()*/
+                    },
+                    //part_list: if let Some((d, _)) = &(*filedata) { d.clone() } else { vec![] },
+                    scheme: i32::from_str(&scheme_ref.cast::<HtmlInputElement>().unwrap().value())
+                        .unwrap_or(0),
+                    dates: {
+                        let fr = date_from_ref.cast::<HtmlInputElement>().unwrap().value();
+                        let to: String = date_to_ref.cast::<HtmlInputElement>().unwrap().value();
+                        let fr_split = parse_dateinput(fr);
+                        let to_split = parse_dateinput(to);
+                        if let (Some(fr), Some(to)) = (fr_split, to_split) {
+                            web_sys::console::log_1(&format!("Dates: {:?}, {:?}", fr, to).into());
+                            Some(DatePair {
+                                begins: Some(
+                                    fr, //Timestamp::date(fr.0, fr.1, fr.2).unwrap()
+                                ),
+                                ends: Some(
+                                    to, //Timestamp::date(to.0, to.1, to.2).unwrap()
+                                ),
+                            })
+                        } else {
+                            web_sys::console::log_1(
+                                &format!("Dates: {:?}, {:?}", fr_split, to_split).into(),
+                            );
+                            web_sys::console::log_1(&"Invalid Dates!".into());
+                            None
+                        }
+                    },
+                    place: {
+                        let s = place_ref.cast::<HtmlInputElement>().unwrap().value();
+                        if !s.is_empty() {
+                            Some(s)
+                        } else {
+                            None
+                        }
+                    },
+                    descr: {
+                        let s = desc_ref.cast::<HtmlInputElement>().unwrap().value();
+                        if !s.is_empty() {
+                            Some(s)
+                        } else {
+                            None
+                        }
+                    },
+                };
+                if declar.is_valid() {
+                    Some(declar)
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        }
+    });
+
+    let upload_table_callback = Callback::from({
+        let filedata = filedata.clone();
+        let file_status = file_status.clone();
+        let query_ref = query_ref.clone();
+        move |e: web_sys::Event| {
             let filedata = filedata.clone();
             let file_status = file_status.clone();
-            move |e: web_sys::Event| {
-                let filedata = filedata.clone();
-                let file_status = file_status.clone();
-                web_sys::console::log_1(&"File Uploading".to_string().into());
-                file_status.set(FileLoadStatus::Loading);
-                let input: HtmlInputElement = e.target_unchecked_into();
-                let files = input.files();
-                if let Some(files) = files {
-                    if let Some (file) = files.item(0) {
-                        let file_name = file.name().clone();
-                        filedata.set(None);
-                        wasm_bindgen_futures::spawn_local(async move {
-                            if let Ok(res) = gloo_file::futures::read_as_bytes(&file.into()).await {
-                                if let Ok((partics, teams)) = compet_reader(res).await {
-                                    file_status.set(FileLoadStatus::Finished(file_name));
-                                    filedata.set(Some((partics, teams)));
-                                } else {
-                                    file_status.set(FileLoadStatus::Error);
-                                }
+            let query_ref = query_ref.clone();
+            web_sys::console::log_1(&"File Uploading".to_string().into());
+            file_status.set(FileLoadStatus::Loading);
+            let input: HtmlInputElement = e.target_unchecked_into();
+            let files = input.files();
+            if let Some(files) = files {
+                if let Some(file) = files.item(0) {
+                    let file_name = file.name().clone();
+                    filedata.set(None);
+                    wasm_bindgen_futures::spawn_local(async move {
+                        if let Ok(res) = gloo_file::futures::read_as_bytes(&file.into()).await {
+                            if let Ok(declaration) = read_packaged_table::<NominationDeclaration>(
+                                res,
+                                {
+                                    
+                                    
+                                    // u32::from_str(&query_ref.cast::<HtmlInputElement>().unwrap().value())
+                                    //     .unwrap_or(2)
+                                    u32::from_str(&query_ref.cast::<HtmlInputElement>().unwrap().value()).unwrap_or(2)
+                                },
+                                3,
+                                1,
+                                |x: &String| true,
+                            )
+                            .await
+                            {
+                                web_sys::console::log_1(
+                                    &format!(
+                                        "qs: {:?}, {:?}",
+                                        &declaration.len(),
+                                        &{
+                                            query_ref.cast::<HtmlInputElement>().unwrap().value()
+                                            //u32::from_str(&query_ref.cast::<HtmlInputElement>().unwrap().value())
+                                        }
+                                    ).into()
+                                );
+                                file_status.set(FileLoadStatus::Finished(file_name));
+                                filedata.set(Some(declaration));
                             } else {
                                 file_status.set(FileLoadStatus::Error);
                             }
-                        });
-                    }  else {
-                        file_status.set(FileLoadStatus::Error);
-                        web_sys::console::log_1(&"Unable to read first file".into());}
+                        } else {
+                            file_status.set(FileLoadStatus::Error);
+                        }
+                    });
                 } else {
                     file_status.set(FileLoadStatus::Error);
-                    web_sys::console::log_1(&"Unable to get FileList".into());}
+                    web_sys::console::log_1(&"Unable to read first file".into());
+                }
+            } else {
+                file_status.set(FileLoadStatus::Error);
+                web_sys::console::log_1(&"Unable to get FileList".into());
             }
-        });
+        }
+    });
 
     html! {
         <>
@@ -616,13 +659,14 @@ pub fn new_comp_form(res_callback: &Callback<Option<CompDeclaration>>) -> Html {
                                 <label for="judge-scheme">{"Схема оценивания:"}</label>
                                 //<input class={"hidden"} list={"judge-scheme-list"}/>
                                 <select ref={scheme_ref} id={"judge-scheme"}>
-                                 <option selected={if let Some(x) = &decl.declaration {x.scheme == 0} else {true} } value={(JudgeScheme::FourFourTwo as i32).to_string()}>{"4/4/2"}</option>
-                                 <option selected={if let Some(x) = &decl.declaration {x.scheme == 1} else {false} }value={(JudgeScheme::SixSixTwo as i32).to_string()}>{"6/6/2"}</option>
+                                 <option selected={if let Some(x) = &decl.declaration {x.scheme == 0} else {true} } value={(JudgeScheme::FourFourOne as i32).to_string()}>{"4/4/1"}</option>
+                                 <option selected={if let Some(x) = &decl.declaration {x.scheme == 1} else {true} } value={(JudgeScheme::FourFourTwo as i32).to_string()}>{"4/4/2"}</option>
+                                 <option selected={if let Some(x) = &decl.declaration {x.scheme == 2} else {false} }value={(JudgeScheme::SixSixTwo as i32).to_string()}>{"6/6/2"}</option>
                                 </select>
                             </div>
                             <div>
                                 <label for="queries">{"Очередей:"}</label>
-                                <input ref={query_ref} id="queries" type="number" min=1 step=1 value={1}/>
+                                <input ref={query_ref} id="queries" type="number" min=1 step=1/>
                             </div>
                         </div>
 
@@ -656,7 +700,9 @@ pub fn new_comp_form(res_callback: &Callback<Option<CompDeclaration>>) -> Html {
                                     html!{
                                         <>
                                             <span class={"marked-ok-pill"}>{"Файл загружен: "}{x}</span>
-                                            <HidingView>
+                                            /*
+
+                                                <HidingView>
                                                 <table class={"table"}>
                                                     <caption>
                                                         {"Список участников"}
@@ -694,6 +740,8 @@ pub fn new_comp_form(res_callback: &Callback<Option<CompDeclaration>>) -> Html {
                                                     </tbody>
                                                 </table>
                                             </HidingView>
+
+                                             */
                                         </>
                                     }
                                 }
@@ -737,48 +785,69 @@ pub fn new_comp_form(res_callback: &Callback<Option<CompDeclaration>>) -> Html {
     }
 }
 
-
-
-
 #[autoprops]
 #[function_component(CompetitionListViewer)]
 pub fn competition_list_view() -> Html {
     let ctx = use_context::<GlobalContext>().expect("no ctx found");
 
-    let cid_list = use_reducer_eq(|| { IdListContext::default() });
+    let mut cid_list = use_reducer_eq(|| IdListContext::default());
 
     if cid_list.0.len() == 0 {
         let mut client = Context::get_comp_grpc_client(&ctx);
-        wasm_bindgen_futures::spawn_local(
-            {
-                let cid_list = cid_list.clone();
-                async move{
-                    let result = client.get_comps_ids( Empty{} ).await;
-                    if let Ok(responce) = result {
-                        let (meta, id_lst ,ext) = responce.into_parts();
-                        cid_list.dispatch(DropSetAction::Set(
-                            IdListContext( id_lst.obj_ids.into() )
-                        ));
-                    } else {
-                        web_sys::console::log_1(&"Server returned Error!".into());
-                    }
+        wasm_bindgen_futures::spawn_local({
+            let cid_list = cid_list.clone();
+            async move {
+                let result = client.get_comps_ids(Empty {}).await;
+                if let Ok(responce) = result {
+                    let (meta, id_lst, ext) = responce.into_parts();
+                    cid_list.dispatch(DropSetAction::Set(IdListContext(id_lst.obj_ids.into())));
+                } else {
+                    web_sys::console::log_1(&"Server returned Error!".into());
                 }
             }
-        )
+        })
     } else {
         web_sys::console::log_1(&"Mew :3".into());
     }
     // TODO: сделать странички, чтобы не запрашивать все въюшки
 
+    /*wasm_bindgen_futures::spawn_local(
+        {
+            let ctx = ctx.clone();
+            let mut cid_list = cid_list.clone();
+            async move {
+                let mut client = Context::get_comp_grpc_client(&ctx);
+                match client.get_comps_ids(Request::new(Empty{})).await {
+                    Ok(x) => {
+                        cid_list.dispatch(DropSetAction::Set(IdListContext(x.into_inner().obj_ids)));
+                    },
+                    Err(_) => {
+
+                    },
+                };
+            }
+        }
+    );*/
+
+    let v = (*cid_list.0.clone())
+        .iter()
+        .map(|i| {
+            html! {
+                <>
+                    <CompetitionCard
+                        coid={i.clone()}
+                    />
+                </>
+            }
+        })
+        .collect::<Vec<Html>>();
+
     html! {
-        <div class={"stack"}>
-            /*{
-                *cid_list.into_iter().map(|_| {
-                    html!{
-                        <CompetitionCard/>
-                    }
-                }).collect::<Vec<Html>>()
-            }*/
-        </div>
+        <>
+            <a href={"/webapp/comps/new"} class={"marked"}>{"создать новое"}</a>
+            <div class={"stack"}>
+                { v }
+            </div>
+        </>
     }
 }

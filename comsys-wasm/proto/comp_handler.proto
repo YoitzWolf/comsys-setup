@@ -11,21 +11,19 @@ import "google/protobuf/timestamp.proto";
 service CompetitionHandler {
     // setup competition. Run service for current competition
     rpc Run(generic.Id) returns (generic.Empty);
+
+    rpc Stop(generic.Id) returns (generic.GenericResultMessage);
   
     // ask about competition queue (последовательность выступлений подряд. может внутри иметь несколько очередей в смысле групп судей)
     ///rpc getQueue(QueueRequest) returns (QueueResult);
 
-    // получить текущее выступление (выступления), которые сейчас оцениваются. 
-    ///rpc getCurrentActions(CurrentActionsRequest) returns (CurrentActions);
-
-    // send message to cometition`s MessagePool, returns error or messge ID id history
-    //rpc pushMessage(Message) returns (generic.Id);
-
-    //rpc pushMarkMessage(MarkMessage) returns (generic.Id);
-
-    //rpc pushVerificationMessage(VerificationMessage) returns (generic.Id);
+    /// получить текущее выступление (выступления), которые сейчас оцениваются. 
+    /// Coid,Quid
+    //rpc getActiveActions(generic.IntPair) returns (ActiveActionState);
 
     rpc startEQMessageStream(generic.Id) returns (stream EQHistoryMessage);
+
+    //rpc startActiveActionStream(generic.Id) returns (stream ActiveActionsStreamMessage);
 
     rpc pushEQMessage(EQMessage) returns (generic.Id);
 
@@ -34,9 +32,10 @@ service CompetitionHandler {
 }
 
 message VoteMessage {
+    auth.UserView author = 1;
     // queue num.
     int32 queue_id = 2;
-    // team action id
+    // action action id
     int32 action_id = 3;
     // mark type
     string mark_type = 4;
@@ -44,20 +43,25 @@ message VoteMessage {
     int32 mark = 5;
 }
 
-enum Verification{
+enum Verification {
+    // deny 
     Block = 0;
+    // ok
     Approve = 1;
+    // before beeing checked
+    NotChecked = 2;
 }
 
 message VerifyVoteMessage {
     // message id in the competition pool
-    int32 target_message_id = 1;    
-    Verification verdict = 2;
+    int32 target_message_id = 1;
+    int32 queue_id = 2;
+    Verification verdict = 3;
 }
 
 message FixVotingMessage {
     int32 queue_id = 1;
-    int32 action_id = 3;
+    //int32 action_id = 3;
     Verification verdict = 2;
 }
 
@@ -66,11 +70,24 @@ message TryNext {
 }
 
 message BlockMessage {
-    int32 queue_id = 1;
+    //int32 queue_id = 1;
 }
 
 message ChangeMessage {
     int32 queue_id = 1;
+}
+
+message FinesSetup {
+    // queue num.
+    int32 queue_id = 2;
+    // action action id
+    int32 action_id = 3;
+    //
+    repeated int32 fines = 4;
+}
+
+message SwapMessage {
+    
 }
 
 message EQMessage {
@@ -80,12 +97,14 @@ message EQMessage {
     oneof message {
         VoteMessage vote_message = 4;
         VerifyVoteMessage verify_message = 5;
-        FixVotingMessage fix_voting = 6;
+        FixVotingMessage fix_voting = 6; // and add to table
         TryNext try_next = 7;
         BlockMessage block = 8;
-        //ChangeMessage skip = 9;
+        ActiveActionState set_active_action = 9;
+        generic.Id clear_queue_action = 10;
+        FinesSetup fines_setup = 11;
+        //
     }
-
 }
 
 message EQHistoryMessage {
@@ -102,3 +121,41 @@ message EQHistory {
     int32 comp_id = 1;
     repeated EQHistoryMessage history = 2;
 }
+
+message VoteList {
+    message VoteView {
+        //int32 author_id = 1;
+        int32 message_id = 1;
+        Verification verifyed = 2;
+        int32 mark = 3;
+    }
+
+    repeated VoteView votes = 1;
+}
+
+message ActiveActionState {
+    int32 qid = 1;
+    // action id
+    int32 aid = 2;
+    // team
+    comp.Team team = 3;
+    // marks
+    // repeated comp.Participant participants = 4;
+    // marks
+    map <string, VoteList > marks = 4;
+    
+}
+
+// message ActiveActionsMessage {
+//     int32 comp_id = 1;
+//     repeated ActiveActionState state = 2;
+// }
+
+/*message ActiveActionsStreamMessage {
+    int32 comp_id = 1;
+    int32 queue_id = 2;
+    oneof message {
+        ActiveActionState change = 3;
+        generic.Empty close = 4;
+    }
+}*/

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::sync::Arc;
@@ -19,11 +20,13 @@ use tracing::{error, instrument};
 use crate::auth_backend::prelude::*;
 
 use crate::auth_backend::tokens::{TokenClaim, TokenGenerator};
+use crate::db_mng::org_mng::get_user_orgs_by_uid;
 use crate::db_mng::token_mng::{exist_such, TokenPrototype};
-use crate::db_mng::user_mng::{get_user_perms, insert_user, UserModel};
+use crate::db_mng::user_mng::{self, insert_user, UserModel};
 
 use crate::gen::auth::authentication_server::Authentication;
 use crate::gen::auth::*;
+use crate::gen::generic::Empty;
 
 pub trait GetAuthor{
     fn get_author(&self) -> String;
@@ -88,6 +91,7 @@ impl AuthService {
 
 #[tonic::async_trait]
 impl Authentication for AuthService {
+
     #[instrument]
     async fn authorize(&self, request: Request<AuthRequest>) -> Result<Response<AuthResult>, Status> {
         //info!(target: "gRPC: ", "Received new authorize request: {:?}", request);
@@ -103,7 +107,16 @@ impl Authentication for AuthService {
                     if let Ok(hash) = argon2::PasswordHash::new(&user.hash) {
                         correctreq = argon2::Argon2::default().verify_password(req.password.as_bytes(), &hash).is_ok();
                         if correctreq {
-                            let org_perms = vec![];
+                            let org_perms = match get_user_orgs_by_uid(&mut con, user.id).await{
+                                Ok(o) => {
+                                    //println!("Perms found: {:?}", o);
+                                    o
+                                },
+                                Err(e) => {
+                                    tracing::error!(target: "gRPC", "ERR: Unable to load UserOrg perms from db! {:?}", e);
+                                    vec![]
+                                },
+                            };
                             db_connection = Some(con);
                             this_user = Some((user, org_perms));
                         }
@@ -120,16 +133,32 @@ impl Authentication for AuthService {
                 TokenType::Access.into(),
                 author,
                 this_user.0.id,
-                this_user.1.iter().map(
-                    |x| {
-                        (x.oid, Permissions::parse(&x.perm))}
-                ).filter(
-                    |(x,y)| {
-                        y.is_ok() }
-                ).map(
-                    |(x,y)| {
-                        (x, y.unwrap()) }
-                ).collect()
+                {
+                    let mut mp: HashMap<i32, Vec<Permissions>> = HashMap::new();
+                    this_user.1.iter().map(
+                        |x| {
+                            (x.oid, Permissions::parse(&x.perm))}
+                    ).filter(
+                        |(x,y)| 
+                            {
+                                y.is_ok() 
+                            }
+                    ).for_each(
+                        |(x,y)| 
+                            {
+                                if let Some(mm) = mp.get_mut(&x) {
+                                    mm.push(y.unwrap());
+                                } else {
+                                    mp.insert(x, vec![y.unwrap()]);
+                                }
+                            }
+                    );
+
+                    //println!("Perms : {:?}, raw: {:?}", mp, this_user.1);
+                    mp.iter().map(
+                        |(x, y)| { (x.clone(), y.clone()) }
+                    ).collect()
+                }
             );
 
             let token = self.token_generator.lock().await.generate(
@@ -238,7 +267,8 @@ impl Authentication for AuthService {
         if let Some(token) = access_token_data {
             // ASK DB HERE
             let proto = TokenPrototype::from(&token.claims);
-            let mut perms = vec![];
+            let mut perms = token.claims.perms;
+            //println!(">> PERMS: {:?}", perms);
             let con = self.db_con.lock().await.get().await;
             if let Ok(mut con) = con {
                 if exist_such(&mut con, &proto).await.is_err() {
@@ -248,7 +278,7 @@ impl Authentication for AuthService {
                         }
                     ))
                 }
-                perms = get_user_perms(&mut con, token.claims.user_id).await.unwrap_or(vec![]);
+                //perms = .clone(); // get_user_perms(&mut con, token.claims.user_id).await.unwrap_or(vec![]);
             } else {
                 return Err(Status::internal("Database Error"));
             }
@@ -328,14 +358,26 @@ impl Authentication for AuthService {
 
         match supervisor_code {
             Some(code) => {
-                if code.eq(&"DebugCode") { // TODO 
+                if code.eq(&"DebugCode") { // TODO  
                     match auth_req {
                         Some(AuthRequest{login, password}) => {
                             let salt = SaltString::generate(&mut OsRng);
                             let hash = argon2::Argon2::default().hash_password(password.as_bytes(), &salt).unwrap().to_string();
                             let mut con = self.db_con.lock().await.get().await.unwrap();
-                            insert_user(&mut con, &UserModel{login, hash}).await;
-                            Err(Status::aborted("Method not Implemented"))
+                            match insert_user(&mut con, &UserModel{selfname: login.clone(), login, hash}).await {
+                                Ok(v) => {
+                                    if let Some(x) = v.first() {
+                                        Ok(
+                                            Response::new(
+                                                RegisterResult { registered: true }
+                                            )
+                                        )
+                                    } else {
+                                        Err(Status::invalid_argument("No auth data!")) 
+                                    }
+                                },
+                                Err(_) => Err(Status::aborted("Error")),
+                            }
                         },
                         None => { Err(Status::invalid_argument("No auth data!")) }
                     }
@@ -348,3 +390,7 @@ impl Authentication for AuthService {
     }
 }
 
+/*
+
+
+*/

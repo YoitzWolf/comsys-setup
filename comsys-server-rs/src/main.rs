@@ -11,6 +11,7 @@ use diesel_async::pooled_connection::AsyncDieselConnectionManager;
 use diesel_async::pooled_connection::deadpool::Pool;
 
 use r#gen::comp_handler::competition_handler_server::CompetitionHandlerServer;
+use gen::users::user_manage_server::UserManageServer;
 use tokio::sync::Mutex;
 use tonic::codegen::http::HeaderName;
 use tonic::transport::Server;
@@ -19,6 +20,7 @@ use tower_http::cors::{AllowOrigin, Any, Cors, CorsLayer};
 use tonic_build::Service;
 
 mod auth_service;
+mod users_service;
 mod gen;
 mod auth_backend;
 mod competition_backend;
@@ -35,6 +37,7 @@ use auth_service::AuthService;
 use tracing::*;
 use tracing_subscriber;
 use tracing_appender;
+use users_service::UsersService;
 use crate::auth_backend::prelude::*;
 use crate::comp_decl_service::CompDeclService;
 use crate::gen::comp::competition_declarator_server::CompetitionDeclaratorServer;
@@ -100,6 +103,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
     );
 
+    let users = UserManageServer::new(
+        UsersService::new(
+            Arc::clone(&pool)
+        )
+    );
+
     let authed_comper_router = tower::ServiceBuilder::new()
         .layer(async_interceptor(auth_interceptor.clone()))
         .service(comper);
@@ -107,6 +116,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let authed_comp_handler_router = tower::ServiceBuilder::new()
         .layer(async_interceptor(auth_interceptor.clone()))
         .service(comp_handler);
+
+    let authed_users_router = tower::ServiceBuilder::new()
+        .layer(async_interceptor(auth_interceptor.clone()))
+        .service(users);
         //
         //.(comper).into_inner();
 
@@ -147,6 +160,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add_service(auther)
         .add_service(authed_comper_router)
         .add_service(authed_comp_handler_router)
+        .add_service(authed_users_router)
         .serve(addr)
         .await?;
 

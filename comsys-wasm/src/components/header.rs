@@ -14,10 +14,6 @@ use super::simple::*;
 
 #[function_component(BaseHeader)]
 pub fn base_header() -> Html {
-    //let screen_width = use_state(
-    //    || get_viewport_width()
-    //);
-    //web_sys::console::log_1(&format!("> Size: {:?}", screen_width).into());
     html!(
         <div class={classes!("header")}>
             <h1 class={classes!("col-1")}>{"ComSys"}</h1>
@@ -35,7 +31,7 @@ pub fn base_header() -> Html {
         </div>
     )
 }
-
+ 
 #[function_component(UserView)]
 pub fn user_view() -> Html {
     let ctx =  use_context::<GlobalContext>().expect("no ctx found");

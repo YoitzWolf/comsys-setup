@@ -29,13 +29,11 @@ service CompetitionDeclarator {
 
 
 message Participant {
-
   enum Gender {
     Unknown = 0; // типа паркетный
     Male = 1; // ну понятно
     Female = 2; // очевидно
   }
-
   int32 uid = 1; // Local(Competition) user_id; Данное поле НЕ соответствует каким-либо uid в системе авторизации и аунтефикации.
   string name = 2;
   Gender gender = 3;
@@ -43,15 +41,22 @@ message Participant {
   repeated string extra_personal = 5;
 }
 
+message EasyParticipant {
+  //int32 uid = 1; // Local(Competition) user_id; Данное поле НЕ соответствует каким-либо uid в системе авторизации и аунтефикации.
+  string name = 1;
+  repeated string extra_personal = 2;
+}
+
 message Team {
-  int32 tid = 1; // Local(Competition) team Id
+  int32 tid = 1; // team id ~ local id;
   string nom = 2; // Nomination
-  repeated int32 participants = 3; // Participants Ids
+  string organisation = 3; // Org presented
+  repeated EasyParticipant participants = 4; // Participants Ids
 }
 
 message NominationDeclaration {
   string title = 1;
-  // team id <-> team
+  // action id <-> team
   map <int32, Team> teams = 2;
   // index = order, items = team ids
   repeated int32 inner_queue = 3;
@@ -72,7 +77,7 @@ message CompDeclaration {
   optional string place = 5;
   optional string descr = 6;
   JudgeScheme scheme = 7;
-  repeated Participant part_list = 9;
+  //repeated Participant part_list = 9;
   repeated CompetitionQueue queues = 10;
 }
 
@@ -134,6 +139,8 @@ message CompsList {
 
 
 enum JudgeScheme {
-  FourFourTwo = 0;
-  SixSixTwo = 1;
+  FourFourOne = 0;
+  
+  FourFourTwo = 1;
+  SixSixTwo = 2;
 }

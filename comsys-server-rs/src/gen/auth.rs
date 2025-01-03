@@ -103,6 +103,8 @@ pub struct UserView {
     pub uid: i32,
     #[prost(string, tag = "2")]
     pub login: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub selfname: ::prost::alloc::string::String,
 }
 #[derive(serde::Deserialize, serde::Serialize)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
@@ -166,11 +168,17 @@ impl AuthFailError {
 }
 /// Generated server implementations.
 pub mod authentication_server {
-    #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
+    #![allow(
+        unused_variables,
+        dead_code,
+        missing_docs,
+        clippy::wildcard_imports,
+        clippy::let_unit_value,
+    )]
     use tonic::codegen::*;
     /// Generated trait containing gRPC methods that should be implemented for use with AuthenticationServer.
     #[async_trait]
-    pub trait Authentication: Send + Sync + 'static {
+    pub trait Authentication: std::marker::Send + std::marker::Sync + 'static {
         async fn authorize(
             &self,
             request: tonic::Request<super::AuthRequest>,
@@ -194,14 +202,14 @@ pub mod authentication_server {
         ) -> std::result::Result<tonic::Response<super::RegisterResult>, tonic::Status>;
     }
     #[derive(Debug)]
-    pub struct AuthenticationServer<T: Authentication> {
+    pub struct AuthenticationServer<T> {
         inner: Arc<T>,
         accept_compression_encodings: EnabledCompressionEncodings,
         send_compression_encodings: EnabledCompressionEncodings,
         max_decoding_message_size: Option<usize>,
         max_encoding_message_size: Option<usize>,
     }
-    impl<T: Authentication> AuthenticationServer<T> {
+    impl<T> AuthenticationServer<T> {
         pub fn new(inner: T) -> Self {
             Self::from_arc(Arc::new(inner))
         }
@@ -255,8 +263,8 @@ pub mod authentication_server {
     impl<T, B> tonic::codegen::Service<http::Request<B>> for AuthenticationServer<T>
     where
         T: Authentication,
-        B: Body + Send + 'static,
-        B::Error: Into<StdError> + Send + 'static,
+        B: Body + std::marker::Send + 'static,
+        B::Error: Into<StdError> + std::marker::Send + 'static,
     {
         type Response = http::Response<tonic::body::BoxBody>;
         type Error = std::convert::Infallible;
@@ -496,23 +504,25 @@ pub mod authentication_server {
                 }
                 _ => {
                     Box::pin(async move {
-                        Ok(
-                            http::Response::builder()
-                                .status(200)
-                                .header("grpc-status", tonic::Code::Unimplemented as i32)
-                                .header(
-                                    http::header::CONTENT_TYPE,
-                                    tonic::metadata::GRPC_CONTENT_TYPE,
-                                )
-                                .body(empty_body())
-                                .unwrap(),
-                        )
+                        let mut response = http::Response::new(empty_body());
+                        let headers = response.headers_mut();
+                        headers
+                            .insert(
+                                tonic::Status::GRPC_STATUS,
+                                (tonic::Code::Unimplemented as i32).into(),
+                            );
+                        headers
+                            .insert(
+                                http::header::CONTENT_TYPE,
+                                tonic::metadata::GRPC_CONTENT_TYPE,
+                            );
+                        Ok(response)
                     })
                 }
             }
         }
     }
-    impl<T: Authentication> Clone for AuthenticationServer<T> {
+    impl<T> Clone for AuthenticationServer<T> {
         fn clone(&self) -> Self {
             let inner = self.inner.clone();
             Self {
@@ -524,7 +534,9 @@ pub mod authentication_server {
             }
         }
     }
-    impl<T: Authentication> tonic::server::NamedService for AuthenticationServer<T> {
-        const NAME: &'static str = "auth.Authentication";
+    /// Generated gRPC service name
+    pub const SERVICE_NAME: &str = "auth.Authentication";
+    impl<T> tonic::server::NamedService for AuthenticationServer<T> {
+        const NAME: &'static str = SERVICE_NAME;
     }
 }

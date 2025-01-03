@@ -8,5 +8,7 @@ pub mod comp_handler;
 
 pub mod generic;
 
+pub mod users;
+
 pub mod impls;
 pub use impls::*;

@@ -16,6 +16,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "./../comsys-wasm/proto/auth.proto",
             "./../comsys-wasm/proto/generic.proto",
             "./../comsys-wasm/proto/comp.proto",
+            "./../comsys-wasm/proto/users.proto",
             "./../comsys-wasm/proto/comp_handler.proto"
         ], &["./../comsys-wasm/proto/"])?;
     Ok(())

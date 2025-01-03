@@ -1,0 +1,64 @@
+[package]
+name = "comsys-wasm"
+version = "0.1.0"
+edition = "2021"
+
+authors = ["Razmyslov Konstantin <yoitz@yandex.ru> <yoitzw@gmail.com>, individual developer"]
+publish = false
+
+[dependencies]
+
+wasm-bindgen-futures = "*"
+wasm-bindgen = { version = "0.2",features = ["serde-serialize"] }
+wasm-cookies = "*"
+
+yew = { version = "0.21.0", features = ["csr", "default"] } # main
+yew-router = "*"
+yew-autoprops = "0.4.1"
+
+validator = { version = "0.18.1", features = ["derive"] }
+
+
+web-sys = { version = "0.3.69", features = ["Event", "EventTarget", "HtmlFormElement", "Screen", "DomTokenList", "AbortController"] }
+# gloo = "*"
+gloo-file = "0.3.0"
+
+prost = { version = "0.13.1", features = ["derive"] }
+prost-types = "0.13.1"
+prost-wkt = "0.6.0"
+prost-wkt-types = "0.6.0"
+reqwest = { version = "0.12.3" }
+
+# bytes = "*"
+
+tokio = { version="*", features=["rt"]}
+tonic = { version = "0.12.1", default-features = false, features = ["codegen", "prost"] }
+hyper = "1"
+hyper-util = "0.1"
+# tonic-web = "*" # ??
+tower = "0.4.13"
+http-body-util = "*"
+tonic-web-wasm-client = "0.6.0"
+serde = { version = "1.0.199", features = ["derive"] }
+# futures-util = "*" # ??
+
+umya-spreadsheet = { version = "2.0.1", features = ["js"] }
+clerk = { path = "../clerk" }
+chrono = "0.4.38"
+# tokio = { version = "1.37.0", features = ["test-util", "macros", "tokio-macros"] }
+
+
+[build-dependencies]
+tonic-build = { version = "0.12.1", default-features = false, features = ["prost"]  }
+
+[profile.release]
+# less code to include into binary
+panic = 'abort'
+# optimization over all codebase ( better optimization, slower build )
+codegen-units = 1
+# optimization for size ( more aggressive )
+opt-level = 'z'
+# optimization for size
+# opt-level = 's'
+# link time optimization using whole-program analysis
+lto = true

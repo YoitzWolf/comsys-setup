@@ -21,21 +21,30 @@ use tonic::Status;
 use tower::Layer;
 use yew::prelude::*;
 use yew_autoprops::autoprops;
-
-use crate::grpc::auth::{Token, TokenType};
+use crate::grpc::auth::{Token, TokenType, UserView};
 use crate::grpc::auth::authentication_client::AuthenticationClient;
 use crate::grpc::auth_client_interceptor::AuthInterceptor;
 use crate::grpc::comp::competition_declarator_client::CompetitionDeclaratorClient;
 use crate::grpc::comp_handler::competition_handler_client::CompetitionHandlerClient;
-use crate::reqs::get_auth_shortcut;
+use crate::grpc::users::user_manage_client::UserManageClient;
+use crate::reqs::{get_auth_shortcut, get_me_shortcut};
 
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct UserData {
-    username: String
+    // uid
+    pub(crate) uid: i32,
+    // login
+    pub(crate) username: String,
+    // selfname
+    pub(crate) selfname: String
 }
 
 impl UserData {
+    pub fn get_selfname(&self) -> &str {
+        &self.selfname
+    }
+
     pub fn get_name(&self) -> &str {
         &self.username
     }
@@ -48,9 +57,19 @@ pub struct UserContext {
     user_data: Option<UserData>,
 }
 
+impl From<UserData> for UserView {
+    fn from(value: UserData) -> Self {
+        UserView {
+            uid: value.uid,
+            login: value.username,
+            selfname: value.selfname,
+        }
+    }
+}
+
 impl UserContext {
     pub fn ready(&self) -> bool {
-        self.auth_token.is_some()
+        self.auth_token.is_some() && self.user_data.is_some()
     }
 
     pub fn clear(&mut self) {
@@ -73,6 +92,11 @@ impl UserContext {
         }
     }
 
+    pub fn set_data(&mut self, data: UserData) -> Result<(), ()> {
+        self.user_data = Some(data);
+        Ok(())
+    }
+
     pub fn drop_token(&mut self) {
         self.auth_token = None;
     }
@@ -86,10 +110,35 @@ impl UserContext {
     }
 
     pub fn same_state(&self, other: &Self) -> bool {
-        (
-            self.auth_token.is_some() && other.get_token().is_some()
+        /*(
+            self.auth_token.is_some() && other.get_token().is_some() && (
+                self.auth_token.clone().unwrap()
+            )
         ) || (
             self.auth_token.is_none() && other.get_token().is_none()
+        ) && (
+            (self.user_data.is_none() && other.user_data.is_none())
+             ||
+            (self.user_data.is_some() && other.user_data.is_some() && (
+                self.user_data.clone().unwrap() == other.user_data.clone().unwrap()
+            )) 
+        )*/
+        (
+            match (self.auth_token.clone(), other.auth_token.clone()) {
+                (Some(x), Some(y)) => {
+                    x.value.eq(&y.value)
+                },
+                (None, None) => true,
+                _ => false
+            }
+        ) && (
+            match (self.user_data.clone(), other.user_data.clone()){
+                (Some(x), Some(y)) => {
+                    x == y
+                },
+                (None, None) => true,
+                _ => false
+            }
         )
     }
 }
@@ -121,7 +170,12 @@ pub fn global_context_provider(children: &Html) -> Html {
     let ctx = use_reducer(|| Context::default() );
 
     if ctx.user.get_token().is_none() {
-        get_auth_shortcut(ctx.clone(), Callback::from(|_| {}));
+        get_auth_shortcut(
+            ctx.clone(),
+            Callback::from(|r:Result<GlobalContext, Status>| {})
+        );
+    } else if ctx.user.get_user_data().is_none() {
+        get_me_shortcut(ctx.clone(), Callback::from(|_|{}));
     }
 
     html! {
@@ -134,6 +188,7 @@ pub fn global_context_provider(children: &Html) -> Html {
 pub enum ContextAction {
 
     SetupAuth(Token),
+    SetupData(UserData),
     DropAuth
 
 }
@@ -153,6 +208,12 @@ impl Reducible for Context {
                 newc.user.clear();
                 Rc::new(newc)
             }
+            ContextAction::SetupData(d) => {
+                let mut newc = self.as_ref().clone();
+                //web_sys::console::log_1(&format!("User Data loaded: {:?}", d).into());
+                newc.user.set_data(UserData{username: d.username, uid: d.uid, selfname: d.selfname}).unwrap();
+                Rc::new(newc)
+            },
              /*_ => {
                  self
              }*/
@@ -178,6 +239,10 @@ impl Context {
 
     pub fn get_comp_handler_grpc_client(ctx: &Self) -> CompetitionHandlerClient<InterceptedService<Client, AuthInterceptor>> {
         CompetitionHandlerClient::with_interceptor(Self::get_web_client(), AuthInterceptor::new(ctx))
+    }
+
+    pub fn get_user_mng_grpc_client(ctx: &Self) -> UserManageClient<InterceptedService<Client, AuthInterceptor>> {
+        UserManageClient::with_interceptor(Self::get_web_client(), AuthInterceptor::new(ctx))
     }
 
     /*

@@ -64,16 +64,29 @@ pub mod participant {
 #[derive(serde::Deserialize, serde::Serialize)]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EasyParticipant {
+    /// int32 uid = 1; // Local(Competition) user_id; Данное поле НЕ соответствует каким-либо uid в системе авторизации и аунтефикации.
+    #[prost(string, tag = "1")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "2")]
+    pub extra_personal: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(serde::Deserialize, serde::Serialize)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Team {
-    /// Local(Competition) team Id
+    /// team id ~ local id;
     #[prost(int32, tag = "1")]
     pub tid: i32,
     /// Nomination
     #[prost(string, tag = "2")]
     pub nom: ::prost::alloc::string::String,
+    /// Org presented
+    #[prost(string, tag = "3")]
+    pub organisation: ::prost::alloc::string::String,
     /// Participants Ids
-    #[prost(int32, repeated, tag = "3")]
-    pub participants: ::prost::alloc::vec::Vec<i32>,
+    #[prost(message, repeated, tag = "4")]
+    pub participants: ::prost::alloc::vec::Vec<EasyParticipant>,
 }
 #[derive(serde::Deserialize, serde::Serialize)]
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -81,7 +94,7 @@ pub struct Team {
 pub struct NominationDeclaration {
     #[prost(string, tag = "1")]
     pub title: ::prost::alloc::string::String,
-    /// team id <-> team
+    /// action id <-> team
     #[prost(map = "int32, message", tag = "2")]
     pub teams: ::std::collections::HashMap<i32, Team>,
     /// index = order, items = team ids
@@ -118,8 +131,7 @@ pub struct CompDeclaration {
     pub descr: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(enumeration = "JudgeScheme", tag = "7")]
     pub scheme: i32,
-    #[prost(message, repeated, tag = "9")]
-    pub part_list: ::prost::alloc::vec::Vec<Participant>,
+    /// repeated Participant part_list = 9;
     #[prost(message, repeated, tag = "10")]
     pub queues: ::prost::alloc::vec::Vec<CompetitionQueue>,
 }
@@ -290,8 +302,9 @@ impl CompStatus {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum JudgeScheme {
-    FourFourTwo = 0,
-    SixSixTwo = 1,
+    FourFourOne = 0,
+    FourFourTwo = 1,
+    SixSixTwo = 2,
 }
 impl JudgeScheme {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -300,6 +313,7 @@ impl JudgeScheme {
     /// (if the ProtoBuf definition does not change) and safe for programmatic use.
     pub fn as_str_name(&self) -> &'static str {
         match self {
+            JudgeScheme::FourFourOne => "FourFourOne",
             JudgeScheme::FourFourTwo => "FourFourTwo",
             JudgeScheme::SixSixTwo => "SixSixTwo",
         }
@@ -307,6 +321,7 @@ impl JudgeScheme {
     /// Creates an enum from field names used in the ProtoBuf definition.
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
+            "FourFourOne" => Some(Self::FourFourOne),
             "FourFourTwo" => Some(Self::FourFourTwo),
             "SixSixTwo" => Some(Self::SixSixTwo),
             _ => None,
@@ -315,11 +330,17 @@ impl JudgeScheme {
 }
 /// Generated server implementations.
 pub mod competition_declarator_server {
-    #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
+    #![allow(
+        unused_variables,
+        dead_code,
+        missing_docs,
+        clippy::wildcard_imports,
+        clippy::let_unit_value,
+    )]
     use tonic::codegen::*;
     /// Generated trait containing gRPC methods that should be implemented for use with CompetitionDeclaratorServer.
     #[async_trait]
-    pub trait CompetitionDeclarator: Send + Sync + 'static {
+    pub trait CompetitionDeclarator: std::marker::Send + std::marker::Sync + 'static {
         /// Создать описание соревнования
         async fn declare_competition(
             &self,
@@ -364,14 +385,14 @@ pub mod competition_declarator_server {
         ) -> std::result::Result<tonic::Response<super::CompDeclaration>, tonic::Status>;
     }
     #[derive(Debug)]
-    pub struct CompetitionDeclaratorServer<T: CompetitionDeclarator> {
+    pub struct CompetitionDeclaratorServer<T> {
         inner: Arc<T>,
         accept_compression_encodings: EnabledCompressionEncodings,
         send_compression_encodings: EnabledCompressionEncodings,
         max_decoding_message_size: Option<usize>,
         max_encoding_message_size: Option<usize>,
     }
-    impl<T: CompetitionDeclarator> CompetitionDeclaratorServer<T> {
+    impl<T> CompetitionDeclaratorServer<T> {
         pub fn new(inner: T) -> Self {
             Self::from_arc(Arc::new(inner))
         }
@@ -426,8 +447,8 @@ pub mod competition_declarator_server {
     for CompetitionDeclaratorServer<T>
     where
         T: CompetitionDeclarator,
-        B: Body + Send + 'static,
-        B::Error: Into<StdError> + Send + 'static,
+        B: Body + std::marker::Send + 'static,
+        B::Error: Into<StdError> + std::marker::Send + 'static,
     {
         type Response = http::Response<tonic::body::BoxBody>;
         type Error = std::convert::Infallible;
@@ -782,23 +803,25 @@ pub mod competition_declarator_server {
                 }
                 _ => {
                     Box::pin(async move {
-                        Ok(
-                            http::Response::builder()
-                                .status(200)
-                                .header("grpc-status", tonic::Code::Unimplemented as i32)
-                                .header(
-                                    http::header::CONTENT_TYPE,
-                                    tonic::metadata::GRPC_CONTENT_TYPE,
-                                )
-                                .body(empty_body())
-                                .unwrap(),
-                        )
+                        let mut response = http::Response::new(empty_body());
+                        let headers = response.headers_mut();
+                        headers
+                            .insert(
+                                tonic::Status::GRPC_STATUS,
+                                (tonic::Code::Unimplemented as i32).into(),
+                            );
+                        headers
+                            .insert(
+                                http::header::CONTENT_TYPE,
+                                tonic::metadata::GRPC_CONTENT_TYPE,
+                            );
+                        Ok(response)
                     })
                 }
             }
         }
     }
-    impl<T: CompetitionDeclarator> Clone for CompetitionDeclaratorServer<T> {
+    impl<T> Clone for CompetitionDeclaratorServer<T> {
         fn clone(&self) -> Self {
             let inner = self.inner.clone();
             Self {
@@ -810,8 +833,9 @@ pub mod competition_declarator_server {
             }
         }
     }
-    impl<T: CompetitionDeclarator> tonic::server::NamedService
-    for CompetitionDeclaratorServer<T> {
-        const NAME: &'static str = "comp.CompetitionDeclarator";
+    /// Generated gRPC service name
+    pub const SERVICE_NAME: &str = "comp.CompetitionDeclarator";
+    impl<T> tonic::server::NamedService for CompetitionDeclaratorServer<T> {
+        const NAME: &'static str = SERVICE_NAME;
     }
 }

@@ -1,0 +1,48 @@
+
+syntax = "proto3";
+package users;
+
+import "generic.proto";
+import "auth.proto";
+
+service UserManage{
+    // Get User View
+    rpc GetMe(generic.Empty) returns (auth.UserView);
+
+    // For Competition (in a fact it is in token)
+    rpc GetMyCompRole(generic.Id) returns (RoleMessage);
+
+    rpc SetupSelfname(generic.StringMessage) returns (generic.Empty);
+};
+
+message Judge {
+    int32 queue = 1;
+    int32 mark_group = 2;
+}
+
+message Role {
+    oneof role {
+        generic.Empty moderator = 1;
+        /// id of queue <-> arbitor
+        generic.Id arbitor = 2;
+        generic.Empty secretary = 3;
+        // judge description
+        Judge judge = 4;
+        generic.Empty watcher = 5;
+        //Watch(AccessType<i32>),
+        ///// Ability to create new comps
+        //Create,
+        ///// Moderate comps. i.e. change them, setup judges etc.
+        //Moderator(AccessType<i32>),
+        ///// Administrator of Organisation. Don't need if you pointed as owner.
+        //Administrate,
+        ///// Judge(competition, query, mark group type)
+        //Judge(i32, i32, i32),
+        //Secretary(i32),
+        //Supervisor((i32, i32)),
+    }
+}
+
+message RoleMessage {
+    repeated Role roles = 1;
+}

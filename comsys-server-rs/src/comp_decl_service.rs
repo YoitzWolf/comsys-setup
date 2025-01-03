@@ -1,9 +1,11 @@
 use crate::auth_backend::prelude::*;
 use crate::auth_backend::tokens::{TokenClaim, TokenGenerator};
-use crate::db_mng::comp_mng::{self, generate_comp_staff, get_comp_data, get_competition};
+use crate::db_mng::comp_mng::{self, generate_comp_staff, get_comp_data, get_competition, get_competitions, get_org_competitions, get_public_competitions, get_public_competitions_all};
 use crate::db_mng::comp_mng::{insert_comp_data, insert_competition};
+use crate::db_mng::org_mng::{get_ownerships, get_user_orgs_by_uid};
 use crate::db_mng::time_convert::into_timestamp;
 use crate::gen::comp::competition_declarator_server::CompetitionDeclarator;
+use crate::gen::comp::comps_list::CompView;
 use crate::gen::comp::mod_comp_declaration_request::Command;
 use crate::gen::comp::{
     CompDeclaration, CompsList, CompsStatusMessage, DeclareCompetitionResult,
@@ -15,8 +17,10 @@ use crate::gen::generic::{
 use crate::has_ability_to_modify;
 use crate::r#gen::comp::PasswordPackage;
 use crate::r#gen::generic;
+use diesel::Identifiable;
 use diesel_async::pooled_connection::deadpool::Pool;
 use diesel_async::{AsyncConnection, AsyncPgConnection};
+use std::collections::HashSet;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tonic::{Request, Response, Status};
@@ -66,7 +70,7 @@ impl CompetitionDeclarator for CompDeclService {
                                 conn,
                                 comp_id,
                                 bincode::serialize(&declaration.queues).unwrap_or_default(),
-                                bincode::serialize(&declaration.part_list).unwrap_or_default(),
+                                //bincode::serialize(&declaration.part_list).unwrap_or_default(),
                             )
                             .await?;
                             //println!("> Comp setup");
@@ -81,7 +85,10 @@ impl CompetitionDeclarator for CompDeclService {
                         }),
                         staff: Some(ppg),
                     })),
-                    Err(e) => Err(Status::internal("Unable to declare!")),
+                    Err(e) => {
+                        println!(">>> {:?}", e);
+                        Err(Status::internal("Unable to declare!"))
+                    },
                     _ => Err(Status::internal("Unable to get staff data!")),
                 }
             } else {
@@ -161,7 +168,51 @@ impl CompetitionDeclarator for CompDeclService {
     }
 
     async fn get_comps_ids(&self, request: Request<Empty>) -> Result<Response<IdsList>, Status> {
-        todo!()
+        let (meta, ext, req) = request.into_parts();
+        if let Ok(mut conn) = self.db_con.lock().await.get().await {
+            if let Some(ext) = ext.get::<TokenClaim>() {
+                let uid: i32 = ext.user_id;
+                let mut st = HashSet::<i32>::new();
+
+                // get_ownerships
+                // get_public_competitions
+                // get_user_orgs_by_uid
+
+                let ownerships = get_ownerships(&mut conn, uid).await;
+                let related = get_user_orgs_by_uid(&mut conn, uid).await;
+
+                match ownerships {
+                    Ok(v) => { v.iter().for_each(|i| { st.insert(i.id); } ) },
+                    Err(_) => {},
+                };
+                match related {
+                    Ok(v) => { v.iter().for_each(|i| { st.insert(i.oid); } ) },
+                    Err(_) => {},
+                };
+
+                let org_comps = get_org_competitions(&mut conn, st.iter().cloned().collect::<Vec<i32>>() ).await;
+                let pub_comps = get_public_competitions_all(&mut conn).await;
+                st.clear();
+                match org_comps {
+                    Ok(v) => { v.iter().for_each(|i| { st.insert(i.id); } ) },
+                    Err(_) => {},
+                };
+                match pub_comps {
+                    Ok(v) => { v.iter().for_each(|i| { st.insert(i.id); } ) },
+                    Err(_) => {},
+                };
+                Ok(
+                    Response::new(IdsList{ obj_ids: st.iter().cloned().collect() })
+                )
+            } else {
+                let pub_comps = get_public_competitions_all(&mut conn).await.unwrap();
+                Ok(
+                    Response::new(IdsList{ obj_ids: pub_comps.iter().map(|x| {x.id}).collect() })
+                )
+            }
+        } else {
+            Err(Status::internal("Database error"))
+        }
     }
 
     async fn get_comps_views(
@@ -169,15 +220,44 @@ impl CompetitionDeclarator for CompDeclService {
         request: Request<IdsList>,
     ) -> Result<Response<CompsList>, Status> {
         let (meta, ext, req) = request.into_parts();
-
         if let Ok(mut conn) = self.db_con.lock().await.get().await {
             if let Some(ext) = ext.get::<TokenClaim>() {
-                Err(Status::internal("NOT IMPLEMENTED"))
+                match get_competitions(&mut conn, req.obj_ids).await {
+                    Ok(v) => {
+
+                        Ok(
+                            Response::new(
+                                CompsList{
+                                    comp_views: v.iter().map(
+                                        |x| {
+                                            (x.id, CompView::from(x) )
+                                        }
+                                    ).collect()
+                                }
+                            )
+                        )
+                        //Err(Status::internal("NOT IMPLEMENTED"))
+                    },
+                    Err(e) => Err(Status::internal("Database select error")),
+                }
             } else {
-                // TODO make public visible
-                Err(Status::permission_denied(
-                    "Not implemented for unauthorized users",
-                ))
+                match get_public_competitions(&mut conn, req.obj_ids).await {
+                    Ok(v) => {
+                        Ok(
+                            Response::new(
+                                CompsList{
+                                    comp_views: v.iter().map(
+                                        |x| {
+                                            (x.id, CompView::from(x) )
+                                        }
+                                    ).collect()
+                                }
+                            )
+                        )
+                        //Err(Status::internal("NOT IMPLEMENTED"))
+                    },
+                    Err(e) => Err(Status::internal("Database select error")),
+                }
             }
         } else {
             Err(Status::internal("Database error"))
@@ -240,7 +320,7 @@ impl CompetitionDeclarator for CompDeclService {
                         scheme: competition.scheme,
 
                         queues: bincode::deserialize(&data.queues).unwrap(),
-                        part_list: bincode::deserialize(&data.participants).unwrap(),
+                        //part_list: bincode::deserialize(&data.participants).unwrap(),
                     };
                     Ok(Response::new(declaration))
                 }

@@ -13,10 +13,39 @@ pub fn button(text: &String, onclick: Callback<MouseEvent>, #[prop_or(false)] di
 }
 
 #[autoprops]
+#[function_component(OkButton)]
+pub fn ok_button(onclick: Callback<MouseEvent>, #[prop_or(false)] disabled: bool) -> Html {
+    html!(
+        <button disabled={disabled} onclick={ onclick } type={ "button".to_string() } class={ classes!("btn", "ok-block", "ok-image") } >
+            <span>{""}</span>
+        < / button >
+    )
+}
+
+#[autoprops]
+#[function_component(DenyButton)]
+pub fn den_button(onclick: Callback<MouseEvent>, #[prop_or(false)] disabled: bool) -> Html {
+    html!(
+        <button disabled={disabled} onclick={ onclick } type={ "button".to_string() } class={ classes!("btn", "err-block", "err-image") } >
+            <span>{""}</span>
+        < / button >
+    )
+}
+
+#[autoprops]
 #[function_component(Spacer)]
 pub fn spacer(space: &String) -> Html {
     html!(
-        <div style={format!("display:block;width=100%;height:{};", space)}>
+        <div style={format!("width=100%;height:{};", space)}>
+        </div>
+    )
+}
+
+#[autoprops]
+#[function_component(HSpacer)]
+pub fn hspacer(space: &String) -> Html {
+    html!(
+        <div style={format!("min-height=1px;width:{};", space)}>
         </div>
     )
 }

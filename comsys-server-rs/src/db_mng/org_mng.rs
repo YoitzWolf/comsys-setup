@@ -4,27 +4,22 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use crate::auth_backend::tokens::Permissions;
 use crate::models::{CompStaffLink, Organisation, User, UserOrg};
 
-pub async fn get_orgs_by_uid(conn: &mut AsyncPgConnection, uid: i32) -> Result<Vec<UserOrg>, Error> {
+pub async fn get_user_orgs_by_uid(conn: &mut AsyncPgConnection, uid: i32) -> Result<Vec<UserOrg>, Error> {
     use crate::schema::user_orgs::dsl;
     dsl::user_orgs.filter(dsl::uid.eq(uid)).select(UserOrg::as_select()).get_results(conn).await
 }
-
-
 pub async fn get_ownerships(conn: &mut AsyncPgConnection, uid: i32) -> Result<Vec<Organisation>, Error> {
     use crate::schema::organisations::dsl;
     dsl::organisations.filter(dsl::owner.eq(uid)).select(Organisation::as_select()).get_results(conn).await
 }
-
 pub async fn get_ownership(conn: &mut AsyncPgConnection, oid: i32) -> Result<Organisation, Error> {
     use crate::schema::organisations::dsl;
     dsl::organisations.filter(dsl::id.eq(oid)).select(Organisation::as_select()).first(conn).await
 }
-
 pub async fn is_owner_of(conn: &mut AsyncPgConnection, uid: i32, oid: i32) -> Result<Organisation, Error> {
     use crate::schema::organisations::dsl;
     dsl::organisations.filter(dsl::id.eq(oid).and(dsl::owner.eq(uid))).select(Organisation::as_select()).first(conn).await
 }
-
 pub async fn setup_org_perms_to_user(
     conn: &mut AsyncPgConnection,
     uid: i32,

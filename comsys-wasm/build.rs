@@ -17,7 +17,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "auth.proto",
                 "generic.proto",
                 "comp.proto",
-                "comp_handler.proto"
+                "comp_handler.proto",
+                "users.proto"
             ], &["./proto"],
         )?;
     Ok(())

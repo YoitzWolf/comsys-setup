@@ -64,16 +64,29 @@ pub mod participant {
 #[derive(serde::Deserialize, serde::Serialize)]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EasyParticipant {
+    /// int32 uid = 1; // Local(Competition) user_id; Данное поле НЕ соответствует каким-либо uid в системе авторизации и аунтефикации.
+    #[prost(string, tag = "1")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "2")]
+    pub extra_personal: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(serde::Deserialize, serde::Serialize)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Team {
-    /// Local(Competition) team Id
+    /// team id ~ local id;
     #[prost(int32, tag = "1")]
     pub tid: i32,
     /// Nomination
     #[prost(string, tag = "2")]
     pub nom: ::prost::alloc::string::String,
+    /// Org presented
+    #[prost(string, tag = "3")]
+    pub organisation: ::prost::alloc::string::String,
     /// Participants Ids
-    #[prost(int32, repeated, tag = "3")]
-    pub participants: ::prost::alloc::vec::Vec<i32>,
+    #[prost(message, repeated, tag = "4")]
+    pub participants: ::prost::alloc::vec::Vec<EasyParticipant>,
 }
 #[derive(serde::Deserialize, serde::Serialize)]
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -81,10 +94,15 @@ pub struct Team {
 pub struct NominationDeclaration {
     #[prost(string, tag = "1")]
     pub title: ::prost::alloc::string::String,
-    /// generic.IntPair ages = 2;
-    /// int64   group_size   = 3;
+    /// action id <-> team
     #[prost(map = "int32, message", tag = "2")]
     pub teams: ::std::collections::HashMap<i32, Team>,
+    /// index = order, items = team ids
+    ///
+    /// generic.IntPair ages = 2;
+    /// int64   group_size   = 3;
+    #[prost(int32, repeated, tag = "3")]
+    pub inner_queue: ::prost::alloc::vec::Vec<i32>,
 }
 #[derive(serde::Deserialize, serde::Serialize)]
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -113,8 +131,7 @@ pub struct CompDeclaration {
     pub descr: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(enumeration = "JudgeScheme", tag = "7")]
     pub scheme: i32,
-    #[prost(message, repeated, tag = "9")]
-    pub part_list: ::prost::alloc::vec::Vec<Participant>,
+    /// repeated Participant part_list = 9;
     #[prost(message, repeated, tag = "10")]
     pub queues: ::prost::alloc::vec::Vec<CompetitionQueue>,
 }
@@ -285,8 +302,9 @@ impl CompStatus {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum JudgeScheme {
-    FourFourTwo = 0,
-    SixSixTwo = 1,
+    FourFourOne = 0,
+    FourFourTwo = 1,
+    SixSixTwo = 2,
 }
 impl JudgeScheme {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -295,6 +313,7 @@ impl JudgeScheme {
     /// (if the ProtoBuf definition does not change) and safe for programmatic use.
     pub fn as_str_name(&self) -> &'static str {
         match self {
+            JudgeScheme::FourFourOne => "FourFourOne",
             JudgeScheme::FourFourTwo => "FourFourTwo",
             JudgeScheme::SixSixTwo => "SixSixTwo",
         }
@@ -302,6 +321,7 @@ impl JudgeScheme {
     /// Creates an enum from field names used in the ProtoBuf definition.
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
+            "FourFourOne" => Some(Self::FourFourOne),
             "FourFourTwo" => Some(Self::FourFourTwo),
             "SixSixTwo" => Some(Self::SixSixTwo),
             _ => None,
@@ -310,7 +330,13 @@ impl JudgeScheme {
 }
 /// Generated client implementations.
 pub mod competition_declarator_client {
-    #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
+    #![allow(
+        unused_variables,
+        dead_code,
+        missing_docs,
+        clippy::wildcard_imports,
+        clippy::let_unit_value,
+    )]
     use tonic::codegen::*;
     use tonic::codegen::http::Uri;
     #[derive(Debug, Clone)]
@@ -321,8 +347,8 @@ pub mod competition_declarator_client {
     where
         T: tonic::client::GrpcService<tonic::body::BoxBody>,
         T::Error: Into<StdError>,
-        T::ResponseBody: Body<Data = Bytes> + Send + 'static,
-        <T::ResponseBody as Body>::Error: Into<StdError> + Send,
+        T::ResponseBody: Body<Data = Bytes> + std::marker::Send + 'static,
+        <T::ResponseBody as Body>::Error: Into<StdError> + std::marker::Send,
     {
         pub fn new(inner: T) -> Self {
             let inner = tonic::client::Grpc::new(inner);
@@ -347,7 +373,7 @@ pub mod competition_declarator_client {
             >,
             <T as tonic::codegen::Service<
                 http::Request<tonic::body::BoxBody>,
-            >>::Error: Into<StdError> + Send + Sync,
+            >>::Error: Into<StdError> + std::marker::Send + std::marker::Sync,
         {
             CompetitionDeclaratorClient::new(InterceptedService::new(inner, interceptor))
         }
@@ -394,8 +420,7 @@ pub mod competition_declarator_client {
                 .ready()
                 .await
                 .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
+                    tonic::Status::unknown(
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
@@ -422,8 +447,7 @@ pub mod competition_declarator_client {
                 .ready()
                 .await
                 .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
+                    tonic::Status::unknown(
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
@@ -449,8 +473,7 @@ pub mod competition_declarator_client {
                 .ready()
                 .await
                 .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
+                    tonic::Status::unknown(
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
@@ -476,8 +499,7 @@ pub mod competition_declarator_client {
                 .ready()
                 .await
                 .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
+                    tonic::Status::unknown(
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
@@ -501,8 +523,7 @@ pub mod competition_declarator_client {
                 .ready()
                 .await
                 .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
+                    tonic::Status::unknown(
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
@@ -523,8 +544,7 @@ pub mod competition_declarator_client {
                 .ready()
                 .await
                 .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
+                    tonic::Status::unknown(
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
@@ -548,8 +568,7 @@ pub mod competition_declarator_client {
                 .ready()
                 .await
                 .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
+                    tonic::Status::unknown(
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;

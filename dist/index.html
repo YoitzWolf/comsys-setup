@@ -1,6 +1,9 @@
-<!DOCTYPE html><html lang="html"><head>
-    <meta charset="utf-8">
-    <meta http-equiv="Content-Security-Policy" content="
+<!DOCTYPE html>
+<html lang="html">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" 
+    content="
       worker-src blob:; 
       child-src blob: gap:;
       img-src 'self' blob: data:;
@@ -9,20 +12,26 @@
     <title>Trunk Template</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&amp;display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="/index-337aeece4f624933.css" integrity="sha384-FHdlcHu7N1N1456t1Rf1YKj0lHh5Y7l-uvpEfgmf4CR1fG-_g9V-U0NyjUt46h9h">
+    <link rel="stylesheet" href="/index-c654c62303b89fdb.css" integrity="sha384&#x2D;59bm1wFekY1bIJR7UywH24fzP42&#x2B;YZZfovptCzG1Wuvp4W3J6QGy&#x2B;u0jMSQlGSJ&#x2B;"/>
     
     
-  
-<link rel="preload" href="/comsys-wasm-dc38972238c59698_bg.wasm" crossorigin="anonymous" integrity="sha384-yxfTYa93snHSrMpBem5_jJIq7qnKjrcXGwSocyZD7mU7UoXn3H1cPAmAOd4bwfnl" as="fetch" type="application/wasm">
-<link rel="modulepreload" href="/comsys-wasm-dc38972238c59698.js" crossorigin="anonymous" integrity="sha384-izP7-wm24u2di6HiBypNs-TE65D6P43e9hVPUUKBUHLCiqIYL1P1UL0pFo2p_t63"></head>
-<body>
 
-<script type="module">
-import init, * as bindings from '/comsys-wasm-dc38972238c59698.js';
-init('/comsys-wasm-dc38972238c59698_bg.wasm');
+    
+<script type="module" nonce="hNEOT0mVqKMh0xAnOffIXQ==">
+import init, * as bindings from '/comsys-wasm-5f086c82a994d456.js';
+const wasm = await init('/comsys-wasm-5f086c82a994d456_bg.wasm');
+
+
 window.wasmBindings = bindings;
 
-</script></body></html>
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+
+</script>
+  
+<link rel="modulepreload" href="/comsys-wasm-5f086c82a994d456.js" crossorigin=anonymous integrity="sha384-RgANxJDp7Ed5biuvRr8sM7YAjDd1k3ENcvSb+lxxis5eimJYP1dLpkKxshn+ey9k">
+<link rel="preload" href="/comsys-wasm-5f086c82a994d456_bg.wasm" crossorigin=anonymous integrity="sha384-e1PWn21QM9sbhv5+BWB83lGhxACHmGeMFYK2PQs6m9GhiQesOrmTpNqVYa+Ddrcf" as="fetch" type="application/wasm"></head>
+</html>

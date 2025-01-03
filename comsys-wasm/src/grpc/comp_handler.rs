@@ -3,10 +3,12 @@
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct VoteMessage {
+    #[prost(message, optional, tag = "1")]
+    pub author: ::core::option::Option<super::auth::UserView>,
     /// queue num.
     #[prost(int32, tag = "2")]
     pub queue_id: i32,
-    /// team action id
+    /// action action id
     #[prost(int32, tag = "3")]
     pub action_id: i32,
     /// mark type
@@ -23,7 +25,9 @@ pub struct VerifyVoteMessage {
     /// message id in the competition pool
     #[prost(int32, tag = "1")]
     pub target_message_id: i32,
-    #[prost(enumeration = "Verification", tag = "2")]
+    #[prost(int32, tag = "2")]
+    pub queue_id: i32,
+    #[prost(enumeration = "Verification", tag = "3")]
     pub verdict: i32,
 }
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -32,8 +36,7 @@ pub struct VerifyVoteMessage {
 pub struct FixVotingMessage {
     #[prost(int32, tag = "1")]
     pub queue_id: i32,
-    #[prost(int32, tag = "3")]
-    pub action_id: i32,
+    /// int32 action_id = 3;
     #[prost(enumeration = "Verification", tag = "2")]
     pub verdict: i32,
 }
@@ -44,6 +47,36 @@ pub struct TryNext {
     #[prost(int32, tag = "1")]
     pub queue_id: i32,
 }
+/// int32 queue_id = 1;
+#[derive(serde::Deserialize, serde::Serialize)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct BlockMessage {}
+#[derive(serde::Deserialize, serde::Serialize)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct ChangeMessage {
+    #[prost(int32, tag = "1")]
+    pub queue_id: i32,
+}
+#[derive(serde::Deserialize, serde::Serialize)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FinesSetup {
+    /// queue num.
+    #[prost(int32, tag = "2")]
+    pub queue_id: i32,
+    /// action action id
+    #[prost(int32, tag = "3")]
+    pub action_id: i32,
+    ///
+    #[prost(int32, repeated, tag = "4")]
+    pub fines: ::prost::alloc::vec::Vec<i32>,
+}
+#[derive(serde::Deserialize, serde::Serialize)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct SwapMessage {}
 #[derive(serde::Deserialize, serde::Serialize)]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -54,7 +87,7 @@ pub struct EqMessage {
     pub author: ::core::option::Option<super::auth::UserView>,
     #[prost(string, tag = "3")]
     pub signature: ::prost::alloc::string::String,
-    #[prost(oneof = "eq_message::Message", tags = "4, 5, 6, 7")]
+    #[prost(oneof = "eq_message::Message", tags = "4, 5, 6, 7, 8, 9, 10, 11")]
     pub message: ::core::option::Option<eq_message::Message>,
 }
 /// Nested message and enum types in `EQMessage`.
@@ -67,10 +100,20 @@ pub mod eq_message {
         VoteMessage(super::VoteMessage),
         #[prost(message, tag = "5")]
         VerifyMessage(super::VerifyVoteMessage),
+        /// and add to table
         #[prost(message, tag = "6")]
         FixVoting(super::FixVotingMessage),
         #[prost(message, tag = "7")]
         TryNext(super::TryNext),
+        #[prost(message, tag = "8")]
+        Block(super::BlockMessage),
+        #[prost(message, tag = "9")]
+        SetActiveAction(super::ActiveActionState),
+        #[prost(message, tag = "10")]
+        ClearQueueAction(super::super::generic::Id),
+        ///
+        #[prost(message, tag = "11")]
+        FinesSetup(super::FinesSetup),
     }
 }
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -101,11 +144,55 @@ pub struct EqHistory {
     pub history: ::prost::alloc::vec::Vec<EqHistoryMessage>,
 }
 #[derive(serde::Deserialize, serde::Serialize)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct VoteList {
+    #[prost(message, repeated, tag = "1")]
+    pub votes: ::prost::alloc::vec::Vec<vote_list::VoteView>,
+}
+/// Nested message and enum types in `VoteList`.
+pub mod vote_list {
+    #[derive(serde::Deserialize, serde::Serialize)]
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, Copy, PartialEq, ::prost::Message)]
+    pub struct VoteView {
+        /// int32 author_id = 1;
+        #[prost(int32, tag = "1")]
+        pub message_id: i32,
+        #[prost(enumeration = "super::Verification", tag = "2")]
+        pub verifyed: i32,
+        #[prost(int32, tag = "3")]
+        pub mark: i32,
+    }
+}
+#[derive(serde::Deserialize, serde::Serialize)]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ActiveActionState {
+    #[prost(int32, tag = "1")]
+    pub qid: i32,
+    /// action id
+    #[prost(int32, tag = "2")]
+    pub aid: i32,
+    /// team
+    #[prost(message, optional, tag = "3")]
+    pub team: ::core::option::Option<super::comp::Team>,
+    /// marks
+    /// repeated comp.Participant participants = 4;
+    /// marks
+    #[prost(map = "string, message", tag = "4")]
+    pub marks: ::std::collections::HashMap<::prost::alloc::string::String, VoteList>,
+}
+#[derive(serde::Deserialize, serde::Serialize)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum Verification {
+    /// deny
     Block = 0,
+    /// ok
     Approve = 1,
+    /// before beeing checked
+    NotChecked = 2,
 }
 impl Verification {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -116,6 +203,7 @@ impl Verification {
         match self {
             Verification::Block => "Block",
             Verification::Approve => "Approve",
+            Verification::NotChecked => "NotChecked",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -123,13 +211,20 @@ impl Verification {
         match value {
             "Block" => Some(Self::Block),
             "Approve" => Some(Self::Approve),
+            "NotChecked" => Some(Self::NotChecked),
             _ => None,
         }
     }
 }
 /// Generated client implementations.
 pub mod competition_handler_client {
-    #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
+    #![allow(
+        unused_variables,
+        dead_code,
+        missing_docs,
+        clippy::wildcard_imports,
+        clippy::let_unit_value,
+    )]
     use tonic::codegen::*;
     use tonic::codegen::http::Uri;
     #[derive(Debug, Clone)]
@@ -140,8 +235,8 @@ pub mod competition_handler_client {
     where
         T: tonic::client::GrpcService<tonic::body::BoxBody>,
         T::Error: Into<StdError>,
-        T::ResponseBody: Body<Data = Bytes> + Send + 'static,
-        <T::ResponseBody as Body>::Error: Into<StdError> + Send,
+        T::ResponseBody: Body<Data = Bytes> + std::marker::Send + 'static,
+        <T::ResponseBody as Body>::Error: Into<StdError> + std::marker::Send,
     {
         pub fn new(inner: T) -> Self {
             let inner = tonic::client::Grpc::new(inner);
@@ -166,7 +261,7 @@ pub mod competition_handler_client {
             >,
             <T as tonic::codegen::Service<
                 http::Request<tonic::body::BoxBody>,
-            >>::Error: Into<StdError> + Send + Sync,
+            >>::Error: Into<StdError> + std::marker::Send + std::marker::Sync,
         {
             CompetitionHandlerClient::new(InterceptedService::new(inner, interceptor))
         }
@@ -213,8 +308,7 @@ pub mod competition_handler_client {
                 .ready()
                 .await
                 .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
+                    tonic::Status::unknown(
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
@@ -225,6 +319,30 @@ pub mod competition_handler_client {
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(GrpcMethod::new("comp_handler.CompetitionHandler", "Run"));
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn stop(
+            &mut self,
+            request: impl tonic::IntoRequest<super::super::generic::Id>,
+        ) -> std::result::Result<
+            tonic::Response<super::super::generic::GenericResultMessage>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/comp_handler.CompetitionHandler/Stop",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(GrpcMethod::new("comp_handler.CompetitionHandler", "Stop"));
             self.inner.unary(req, path, codec).await
         }
         pub async fn start_eq_message_stream(
@@ -238,8 +356,7 @@ pub mod competition_handler_client {
                 .ready()
                 .await
                 .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
+                    tonic::Status::unknown(
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
@@ -268,8 +385,7 @@ pub mod competition_handler_client {
                 .ready()
                 .await
                 .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
+                    tonic::Status::unknown(
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
@@ -292,8 +408,7 @@ pub mod competition_handler_client {
                 .ready()
                 .await
                 .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
+                    tonic::Status::unknown(
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;

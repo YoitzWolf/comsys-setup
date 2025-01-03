@@ -3,14 +3,14 @@ use std::error::Error;
 use tonic::{IntoRequest, Request, Response, Status};
 use yew::{Callback, UseReducerHandle};
 use crate::components::comps::{CompetitionDeclarationWrapper, CompetitionDeclarationWrapperContextAction};
-use crate::context::{Context, ContextAction, GlobalContext};
+use crate::context::{Context, ContextAction, GlobalContext, UserData};
 use crate::grpc::auth::{auth_result, AuthFailError, AuthRequest, AuthResult, DropTokenRequest, GetAuthTokenRequest, RegisterRequest, Token, TokenType};
-use crate::grpc::generic;
+use crate::grpc::{self, generic};
 
 /// Подгрузка AccessToken по логи-паролю + автоматический запрос на AuthToken
 pub fn get_access_shortcut(
     ctx: GlobalContext, login: String, password: String,
-    on_finish: Callback<Result<(), Status>, ()>
+    on_finish: Callback<Result<GlobalContext, Status>, ()>
 ) {
     wasm_bindgen_futures::spawn_local(
         {
@@ -63,7 +63,7 @@ pub fn registration_shortcut(
 
 
 /// Запрашивает получение Auth токена и устанавливает данные о нем в контекст
-pub fn get_auth_shortcut(ctx: GlobalContext, on_finish: Callback<Result<(), Status>, ()>) {
+pub fn get_auth_shortcut(ctx: GlobalContext, on_finish: Callback<Result<GlobalContext, Status>, ()>) {
     wasm_bindgen_futures::spawn_local(async move {
         let mut grpc_client = Context::get_auth_grpc_client();
         let req = Request::new(
@@ -80,7 +80,7 @@ pub fn get_auth_shortcut(ctx: GlobalContext, on_finish: Callback<Result<(), Stat
                 match inner.result {
                     Some(auth_result::Result::Token(token)) => {
                         ctx.dispatch(ContextAction::SetupAuth(token));
-                        on_finish.emit(Ok(()));
+                        on_finish.emit(Ok(ctx.clone()));
                     },
                     Some(auth_result::Result::Error(ec)) => {
                         web_sys::console::log_1(&"No Auth token in response!".to_string().into());
@@ -154,4 +154,25 @@ pub fn get_competition_decl_shortcut(ctx: UseReducerHandle<Context>, compstate: 
             }
         }
     );
+}
+
+pub fn get_me_shortcut(ctx: GlobalContext, on_finish: Callback<Result<(), Status>, ()>) {
+    wasm_bindgen_futures::spawn_local(async move {
+        let mut grpc_client = Context::get_user_mng_grpc_client(&ctx);
+        let req = Request::new(
+            generic::Empty{}
+        );
+        match grpc_client.get_me(req).await {
+            Ok(v) => {
+                //web_sys::console::log_1(&"UWUW".into());
+                let d =  v.into_inner();
+                ctx.dispatch(ContextAction::SetupData(UserData { username: d.login, uid:d.uid, selfname: d.selfname}));
+                on_finish.emit(Ok(()))
+            },
+            Err(e) => {
+                web_sys::console::log_1(&format!("GetMe Error: {:?}", e).into());
+                on_finish.emit(Err(e))
+            },
+        };
+    });
 }

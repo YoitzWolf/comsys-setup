@@ -8,14 +8,17 @@ use yew::{function_component, Html, html};
 use yew_router::prelude::*;
 use yew::prelude::*;
 
+use crate::components::cabinet::UserCabinet;
 use crate::components::{BaseHeader, BaseTemplate, MainComponent};
 use crate::components::comp_cardview::CompetitionCard;
 use crate::components::comps::{CompetitionListViewer, ModComp, NewComp};
 use crate::context::GlobalContext;
 use crate::components::Button;
-use crate::grpc::comp_handler::eq_message::Message;
-use crate::grpc::comp_handler::{EqHistoryMessage, EqMessage, VoteMessage};
+use crate::grpc::auth::UserView;
+use crate::grpc::comp_handler::eq_message::{self, Message};
+use crate::grpc::comp_handler::{EqHistoryMessage, EqMessage, TryNext, Verification, VoteMessage};
 use crate::grpc::generic;
+use crate::components::comp_handler::*;
 
 #[derive(Clone, Routable, PartialEq)]
 pub enum Route {
@@ -43,8 +46,8 @@ pub enum WebAppRoute {
     ModComp{id: i32},
     #[at("/webapp/comps/view/:id")]
     ViewComp{id: i32},
-    #[at("/webapp/comps/running/*")]
-    RunningComp
+    #[at("/webapp/comps/running/:id")]
+    RunningComp{id: i32},
 }
 
 #[derive(Clone, Routable, PartialEq)]
@@ -103,6 +106,9 @@ pub fn switch_webapp(route: WebAppRoute) -> Html {
                 WebAppRoute::ModComp{id} => html! {
                     <ModComp cid={id}/>
                 },
+                WebAppRoute::RunningComp{id} => html! {
+                    <CompHandlerApp cid={id}/>
+                },
                 _ => html! { <Redirect<Route> to={Route::Home}/> },
             }
         }
@@ -114,7 +120,7 @@ pub fn switch_webapp(route: WebAppRoute) -> Html {
 #[function_component(TestUnit)]
 pub fn test_unit () -> Html {
     let ctx = use_context::<GlobalContext>().expect("no ctx found");
-
+    let CID = 6;
     let runcl = Callback::from(
         {
             let ctx = ctx.clone();
@@ -123,7 +129,7 @@ pub fn test_unit () -> Html {
                 wasm_bindgen_futures::spawn_local(
                     async move {
                         let mut client = crate::context::Context::get_comp_handler_grpc_client(&ctx);
-                        let res = client.run(generic::Id{id: 1}).await;
+                        let res = client.run(generic::Id{id: CID}).await;
                         web_sys::console::log_1(&format!(">> {:?}", res).into());
                     }
                 );
@@ -138,9 +144,68 @@ pub fn test_unit () -> Html {
                 let ctx = ctx.clone();
                 wasm_bindgen_futures::spawn_local(
                     async move {
+                        //web_sys::console::log_1(&format!(">> {:?}", ctx.user).into());
                         let mut client = crate::context::Context::get_comp_handler_grpc_client(&ctx);
                         let res = client.push_eq_message(
-                            EqMessage{ comp_id: 1, author: None, signature: "BOBA".to_string(), message: Some(Message::VoteMessage(VoteMessage{..Default::default()})) }
+                            EqMessage{
+                                comp_id: CID,
+                                author: Some(
+                                    UserView{
+                                        uid: -1,
+                                        login: ctx.user.get_user_data().clone().unwrap().get_name().to_string(),
+                                        selfname: ctx.user.get_user_data().clone().unwrap().selfname.clone()
+                                    }
+                                ),
+                                signature: "BOBA".to_string(),
+                                message: Some(
+                                    Message::VoteMessage(
+                                        VoteMessage{
+                                            author: Some(
+                                                UserView{
+                                                    uid: -1,
+                                                    login: ctx.user.get_user_data().clone().unwrap().get_name().to_string(),
+                                                    selfname: ctx.user.get_user_data().clone().unwrap().selfname.clone()
+                                                }
+                                            ),
+                                            queue_id: 0,
+                                            action_id: 1,
+                                            mark_type: "Исполнение".to_string(),
+                                            mark: 10 
+                                        }
+                                    )
+                                ) 
+                            }
+                        ).await;
+                        web_sys::console::log_1(&format!(">> {:?}", res).into());
+                    }
+                );
+            }
+        }
+    );
+
+    let say_shit2 = Callback::from(
+        {
+            let ctx = ctx.clone();
+            move |_| {
+                let ctx = ctx.clone();
+                wasm_bindgen_futures::spawn_local(
+                    async move {
+                        let mut client = crate::context::Context::get_comp_handler_grpc_client(&ctx);
+                        let res = client.push_eq_message(
+                            EqMessage{
+                                comp_id: CID,
+                                author: Some(UserView{
+                                    uid: -1,
+                                    login: ctx.user.get_user_data().clone().unwrap().get_name().to_string(),
+                                    selfname: ctx.user.get_user_data().clone().unwrap().selfname.clone()
+                                }),
+                                signature: "BOBA".to_string(),
+                                message: Some(
+                                    Message::TryNext(
+                                        TryNext { queue_id: 0 }
+                                    )
+                                ) 
+                            }
                         ).await;
                         web_sys::console::log_1(&format!(">> {:?}", res).into());
                     }
@@ -151,53 +216,26 @@ pub fn test_unit () -> Html {
 
     let text = use_state(|| {"start".to_string()});
 
-    let listen = Callback::from(
-        {   
-            let text = text.clone();
-            //let ctx = ctx.clone();
-            move |_| {
-                text.set("Clicked".to_string());
-                web_sys::console::log_1(&"Start streaming request..".into());
-                let ctx = ctx.clone();
-                let text = text.clone();
-                let mut client = crate::context::Context::get_comp_handler_grpc_client(&ctx);
-                wasm_bindgen_futures::spawn_local(
-                    async move {
-                        text.set("WAIT FOWU STWEAMING".to_string());
-                        let mut stream_response = client.start_eq_message_stream(generic::Id{id:1})
-                            .await
-                            .expect("Stream expected..")
-                            .into_inner();
-                        text.set("WAIT FOWU STWEAMING MEWSAGE".to_string());
-                        loop {
-                            web_sys::console::log_1(&"WAIT FOWU STWEAMING MEWSAWGE".into());
-                            text.set("WAIT FOWU STWEAMING MEWSAWGE".to_string());
-                            let response = stream_response.message().await.expect("stream message");
-                            text.set(format!("STWEAMINGW:: {:?}", response));
-                            sleep(Duration::from_secs(1)).await;
-                        }
-                    }
-                );
-            }
-        }
-    );
-
     html! {
         <>
-            <h1>{"Testing Page"}</h1>
-            <Button text="run" onclick={runcl} />
-            <Button text="send" onclick={say_shit} />
-            <Button text="start listen" onclick={listen} />
-            <a>{(text.clone()).to_string()}</a>
+            <div class={"stack"}>    
+                <h1>{"Testing Page"}</h1>
+                <Button text="run" onclick={runcl} />
+                <Button text="send vote" onclick={say_shit} />
+                <Button text="next" onclick={say_shit2} />
+                <CompHandlerApp cid={CID}/>
+            </div>
         </>
     }
 }
 
 pub fn switch_users(route: UsersRoute) -> Html {
-    html! {
-        <>
-            { "Users" }
-        </>
+    match route {
+        UsersRoute::Bare => html! { <> { "Not implemented" } </> },
+        UsersRoute::New => html! { <> { "Not implemented" } </> },
+        UsersRoute::Cabinet => html! {
+            <UserCabinet/>
+        }
     }
 }
 

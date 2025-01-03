@@ -1,6 +1,7 @@
 use std::cmp::max;
 use std::{collections::HashMap, sync::Arc};
-use crate::gen::comp_handler::{EqHistoryMessage, EqMessage, Verification};
+use crate::gen::comp_handler::eq_message::Message;
+use crate::gen::comp_handler::{EqHistoryMessage, EqMessage, Verification, VoteMessage};
 
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{Receiver, Sender};
@@ -24,7 +25,6 @@ pub struct MessagePool {
 }
 
 impl MessagePool {
-
     pub fn new() -> Self {
         Self {
             history: Arc::new(Mutex::new(vec![])),
@@ -36,6 +36,64 @@ impl MessagePool {
     pub async fn not_verified(&self, i: i32 ) -> bool {
         self.not_verified.lock().await.contains(&i)
     }
+
+    pub async fn select_unverified_with_author(&self, author_id: i32) -> Vec<i32> {
+        {
+            let hist = self.history.lock().await;
+            self.not_verified.lock().await.iter().filter(
+                |x| {
+                    if let Some(obj) = hist.get(**x as usize) {
+                        author_id.eq(& obj.message.as_ref().unwrap().author.as_ref().unwrap().uid)
+                    } else {
+                        false
+                    }
+                }
+            ).cloned().collect()
+        }
+    }
+
+    pub async fn select_unverified_with_query(&self, quidu: usize) -> Vec<i32> {
+        let quid: i32 = quidu.try_into().unwrap();
+        {
+            let hist = self.history.lock().await;
+            self.not_verified.lock().await.iter().filter(
+                |x| {
+                    if let Some(obj) = hist.get(**x as usize) {
+                        if let Message::VoteMessage(vote) = obj.message.as_ref().unwrap().message.as_ref().unwrap()  {
+                            quid.eq(& vote.queue_id)
+                        } else {
+                            false
+                        }
+                    } else {
+                        false
+                    }
+                }
+            ).cloned().collect()
+        }
+    }
+
+    /*pub async fn can_vote(&self, author_id: i32, queue_id: i32, action: i32) -> bool {
+        let v = self.select_unverified_with_author(author_id).await;
+        if v.len() > 0 { false }
+        else {
+            let hist = self.history.lock().await;
+            hist.iter().rev().filter(
+                |x|{
+                    match &x.message {
+                        Some(m) => match &m.message {
+                            Some(Message::VoteMessage(vote)) => {
+                                vote.action_id.eq(&author_id) && vote.queue_id.eq(&queue_id)
+                            },
+                            Some(Message::VerifyMessage(verify))
+                            _ => false,
+                        },
+                        None => false,
+                    }
+                }
+            );
+            false
+        }
+    }*/
 
     pub async fn remove_from_unverifyed(&self, i: i32) -> Result<i32, Status> {
        {
@@ -70,7 +128,7 @@ impl MessagePool {
             let mut history = self.history.lock().await;
             message = EqHistoryMessage::from((history.len() as i32, value.clone()));
             history.push(message.clone());
-            history.len()
+            history.len() - 1
         };
 
         // Add Vote Message ID to list of unverified messages
@@ -94,7 +152,7 @@ impl MessagePool {
                     },
                 }
             }
-            bored.iter().for_each(|x| drop(senderlist.remove(*x)) );
+            bored.iter().rev().for_each(|x| drop(senderlist.remove(*x)) );
         };
         //println!("Sending finished");
         Ok(id)
@@ -108,13 +166,15 @@ impl MessagePool {
         self.history.lock().await.get((mid as usize)).cloned()
     }
 
+    pub async fn history_clone(&self) -> Vec<EqHistoryMessage> {
+        self.history.lock().await.clone()
+    }
+
     /*pub fn last_msg(&self) -> Option<&EqHistoryMessage> {
         self.history.last().clone()
     }
 
-    pub fn history_clone(&self) -> Vec<EqHistoryMessage> {
-        self.history.clone()
-    }
+    
 
     pub fn nth_history_clone(&self, n:usize) -> Vec<EqHistoryMessage> {
         self.history[max(0, self.history.len() - n)..self.history.len()-1].to_vec()
